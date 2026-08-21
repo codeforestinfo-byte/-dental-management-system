@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dentaflow-postgres
+    environment:
+      POSTGRES_DB: dentaflow
+      POSTGRES_USER: dentaflow
+      POSTGRES_PASSWORD: dentaflow_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dentaflow -d dentaflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - dentaflow-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dentaflow-backend
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_USERNAME: dentaflow
+      DB_PASSWORD: dentaflow_secret
+      JWT_SECRET: dentaflow-production-secret-key-must-be-at-least-256-bits-long
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: 587
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dentaflow-network
+
+volumes:
+  postgres_data:
+
+networks:
+  dentaflow-network:
+    driver: bridge
