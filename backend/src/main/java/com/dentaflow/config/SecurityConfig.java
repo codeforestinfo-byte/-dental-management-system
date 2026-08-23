@@ -32,7 +32,12 @@ public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     private static final String[] PUBLIC_URLS = {
-            "/api/v1/auth/**",
+            "/api/v1/auth/login",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/forgot-password",
+            "/api/v1/auth/change-password",
+            "/api/v1/auth/me",
             "/actuator/health",
             "/actuator/info",
             "/swagger-ui/**",
@@ -72,6 +77,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/appointments/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/v1/bills/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers("/api/v1/reports/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
                         .anyRequest().authenticated());
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
