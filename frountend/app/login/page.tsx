@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { HeartPulse, Eye, EyeOff } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Eye, EyeOff } from 'lucide-react'
 import { authService } from '@/services/auth.service'
 import { setTokens } from '@/lib/auth'
 
@@ -48,67 +47,108 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10">
-            <HeartPulse className="size-6 text-primary" />
+    <div className="login-page">
+      <div className="login-card">
+        {/* Left: Form Section */}
+        <div className="form-section">
+          <div className="form-inner">
+            {/* Branding */}
+            <div className="brand-logo">
+              <img
+                src="/login-logo.png"
+                alt="Sunrice Dental Clinic Logo"
+                className="brand-logo-img"
+              />
+            </div>
+
+            {/* Sign In Heading */}
+            <h2 className="form-heading">SIGN IN</h2>
+
+            {/* Error */}
+            {error && (
+              <div className="error-box">{error}</div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="login-form">
+              {/* Username */}
+              <div className="input-group">
+                <label className="input-label" htmlFor="username">Username</label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="form-input"
+                  placeholder="Enter your username"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="input-group">
+                <label className="input-label" htmlFor="password">Password</label>
+                <div className="password-wrapper">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="form-input"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="password-toggle"
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Row */}
+              <div className="action-row">
+                <button type="submit" className="login-btn" disabled={loading}>
+                  {loading ? 'Signing in...' : 'Login'}
+                </button>
+                <button type="button" className="forgot-link">
+                  Forgot Password?
+                </button>
+              </div>
+            </form>
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Sunrise Dental</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="username" className="mb-1.5 block text-sm font-medium">Username</label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              placeholder="Enter your username"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium">Password</label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="Enter your password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
+        {/* Right: Image Section */}
+        <div className="image-section">
+          <img
+            src="/nhs.jpg"
+            alt="Sunrice Dental Clinic"
+          />
+          <div className="image-overlay">
+            <div className="image-content">
+              <h2 className="image-title">Welcome to Sunrice Dental Clinic</h2>
+              <p className="image-subtitle">
+                Streamline your clinic operations with our comprehensive healthcare management platform.
+                Manage appointments, patient records, billing, and dental treatments — all in one place.
+              </p>
+              <div className="image-features">
+                <span className="image-feature">Appointment Scheduling</span>
+                <span className="image-feature">Patient Records Management</span>
+                <span className="image-feature">Billing &amp; Invoicing</span>
+                <span className="image-feature">Treatment Tracking</span>
+              </div>
             </div>
           </div>
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Default: admin / admin123
-        </p>
+        </div>
       </div>
+
+      {/* Footer */}
+      <p className="login-footer">
+        Sunrise Dental Clinic &copy; {new Date().getFullYear()}
+      </p>
     </div>
   )
 }
