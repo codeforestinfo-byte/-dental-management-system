@@ -16,6 +16,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,11 +29,29 @@ public class PatientService {
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
         Patient patient = patientMapper.toEntity(request);
-        patient.setPatientNumber(NumberGenerator.generatePatientNumber());
 
-        if (request.getEmail() != null && patientRepository.existsByEmail(request.getEmail())) {
+        Long maxSuffix = patientRepository.getMaxPatientNumberSuffix();
+        String patientNumber = String.format("PAT-%06d", maxSuffix + 1);
+        patient.setPatientNumber(patientNumber);
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && patientRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email already exists");
         }
+
+        if (patient.getRegistrationDate() == null) {
+            patient.setRegistrationDate(LocalDate.now());
+        }
+        if (patient.getStatus() == null) {
+            patient.setStatus("ACTIVE");
+        }
+        if (patient.getHasDiabetes() == null) patient.setHasDiabetes(false);
+        if (patient.getHasHypertension() == null) patient.setHasHypertension(false);
+        if (patient.getHasHeartDisease() == null) patient.setHasHeartDisease(false);
+        if (patient.getHasAsthma() == null) patient.setHasAsthma(false);
+        if (patient.getHasEpilepsy() == null) patient.setHasEpilepsy(false);
+        if (patient.getHasBleedingDisorders() == null) patient.setHasBleedingDisorders(false);
+        if (patient.getConsentAccepted() == null) patient.setConsentAccepted(false);
 
         Patient savedPatient = patientRepository.save(patient);
         log.info("Created patient: {}", savedPatient.getPatientNumber());

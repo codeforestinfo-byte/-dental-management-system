@@ -7,6 +7,40 @@ export interface PatientRequest {
   dateOfBirth: string
   gender: 'MALE' | 'FEMALE' | 'OTHER'
   medicalNotes?: string
+  alternatePhone: string
+  nationalId: string
+  maritalStatus: string
+  profilePhotoUrl: string
+  addressLine2: string
+  city: string
+  postalCode: string
+  emergencyContactName: string
+  emergencyContactNumber: string
+  emergencyContactRelationship: string
+  bloodGroup: string
+  allergies: string
+  currentMedications: string
+  hasDiabetes: boolean
+  hasHypertension: boolean
+  hasHeartDisease: boolean
+  hasAsthma: boolean
+  hasEpilepsy: boolean
+  hasBleedingDisorders: boolean
+  pregnancyStatus: string
+  smokingStatus: string
+  alcoholConsumption: string
+  chiefComplaint: string
+  previousDentalTreatments: string
+  lastDentalVisitDate: string
+  referredBy: string
+  preferredDentist: string
+  insuranceProvider: string
+  insurancePolicyNumber: string
+  insuranceCoverageDetails: string
+  insuranceExpiryDate: string
+  registrationDate: string
+  status: string
+  consentAccepted: boolean
 }
 
 export interface PatientResponse {
@@ -20,6 +54,40 @@ export interface PatientResponse {
   dateOfBirth: string
   gender: string
   medicalNotes: string
+  alternatePhone: string
+  nationalId: string
+  maritalStatus: string
+  profilePhotoUrl: string
+  addressLine2: string
+  city: string
+  postalCode: string
+  emergencyContactName: string
+  emergencyContactNumber: string
+  emergencyContactRelationship: string
+  bloodGroup: string
+  allergies: string
+  currentMedications: string
+  hasDiabetes: boolean
+  hasHypertension: boolean
+  hasHeartDisease: boolean
+  hasAsthma: boolean
+  hasEpilepsy: boolean
+  hasBleedingDisorders: boolean
+  pregnancyStatus: string
+  smokingStatus: string
+  alcoholConsumption: string
+  chiefComplaint: string
+  previousDentalTreatments: string
+  lastDentalVisitDate: string
+  referredBy: string
+  preferredDentist: string
+  insuranceProvider: string
+  insurancePolicyNumber: string
+  insuranceCoverageDetails: string
+  insuranceExpiryDate: string
+  registrationDate: string
+  status: string
+  consentAccepted: boolean
   createdAt: string
   updatedAt: string
 }

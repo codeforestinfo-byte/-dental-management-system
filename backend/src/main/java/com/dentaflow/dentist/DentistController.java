@@ -55,6 +55,12 @@ public class DentistController {
                 dentistPage.getSize()));
     }
 
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<DentistResponse>>> getActiveDentists() {
+        List<DentistResponse> response = dentistService.getActiveDentists();
+        return ResponseEntity.ok(ApiResponse.success("Active dentists retrieved", response));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DentistResponse>> getDentistById(@PathVariable Long id) {
         DentistResponse response = dentistService.getDentistById(id);
@@ -83,12 +89,6 @@ public class DentistController {
         auditService.logWithUser(userDetails.getUsername(), "DELETE", "DENTIST",
                 id, "Deactivated dentist", getClientIp(httpRequest));
         return ResponseEntity.ok(ApiResponse.success("Dentist deactivated successfully"));
-    }
-
-    @GetMapping("/active")
-    public ResponseEntity<ApiResponse<List<DentistResponse>>> getActiveDentists() {
-        List<DentistResponse> response = dentistService.getActiveDentists();
-        return ResponseEntity.ok(ApiResponse.success("Active dentists retrieved", response));
     }
 
     private String getClientIp(HttpServletRequest request) {

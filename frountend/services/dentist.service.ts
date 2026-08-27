@@ -3,7 +3,7 @@ import type { ApiResponse, PaginatedResponse } from '@/types/common.types'
 import type { DentistRequest, DentistResponse } from '@/types/dentist.types'
 
 export const dentistService = {
-  async getAll(params?: { page?: number; size?: number; sort?: string }): Promise<ApiResponse<PaginatedResponse<DentistResponse>>> {
+  async getAll(params?: { page?: number; size?: number; sort?: string }): Promise<PaginatedResponse<DentistResponse>> {
     const res = await api.get('/api/v1/dentists', { params })
     return res.data
   },

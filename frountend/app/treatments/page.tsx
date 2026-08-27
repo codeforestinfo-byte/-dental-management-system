@@ -20,7 +20,7 @@ export default function TreatmentsPage() {
     try {
       setLoading(true)
       const res = await treatmentService.getAll({ size: 100 })
-      if (res.success) setTreatments(res.data?.content || [])
+      if (res.success) setTreatments(res.data || [])
     } catch { /* empty */ } finally { setLoading(false) }
   }
 

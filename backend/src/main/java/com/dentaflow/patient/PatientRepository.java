@@ -18,6 +18,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
     boolean existsByEmail(String email);
 
+    @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(patient_number FROM 5) AS BIGINT)), 0) FROM patients", nativeQuery = true)
+    Long getMaxPatientNumberSuffix();
+
     @Query("SELECT p FROM Patient p WHERE " +
            "LOWER(p.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(p.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
