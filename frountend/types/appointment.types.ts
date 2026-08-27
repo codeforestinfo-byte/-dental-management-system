@@ -10,25 +10,12 @@ export interface AppointmentRequest {
 export interface AppointmentResponse {
   id: number
   appointmentNumber: string
-  patient: {
-    id: number
-    patientNumber: string
-    firstName: string
-    lastName: string
-    contactNumber: string
-  }
-  dentist: {
-    id: number
-    dentistCode: string
-    dentistName: string
-    specialization: string
-  }
-  treatment: {
-    id: number
-    treatmentCode: string
-    treatmentName: string
-    treatmentFee: number
-  }
+  patientId: number
+  patientName: string
+  dentistId: number
+  dentistName: string
+  treatmentId: number
+  treatmentName: string
   appointmentDate: string
   appointmentTime: string
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'

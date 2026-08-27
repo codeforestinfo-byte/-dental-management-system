@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import {
   Activity, Bell, CircleHelp, CreditCard, FileBarChart, HeartPulse, LayoutDashboard,
   Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, Stethoscope,
-  Users, X, ArrowUpRight, LogOut, CalendarDays, Loader2,
+  Users, X, ArrowUpRight, LogOut, CalendarDays, Loader2, UserCog,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
@@ -33,7 +33,11 @@ export default function DashboardLayout({ children, title }: { children: React.R
   const [mobileOpen, setMobileOpen] = useState(false)
   const [query, setQuery] = useState('')
   const pathname = usePathname()
-  const { user, logout, loading } = useAuth()
+  const { user, logout, loading, hasRole } = useAuth()
+
+  const adminNavItems = [
+    ['Users', UserCog, '/users'],
+  ]
 
   if (loading) {
     return (
@@ -55,6 +59,16 @@ export default function DashboardLayout({ children, title }: { children: React.R
               <Icon className="size-[18px]" /><span>{!collapsed && label as string}</span>
             </Link>
           ))}
+          {hasRole('ADMIN') && (
+            <>
+              <div className="my-4 border-t border-border" />
+              {adminNavItems.map(([label, Icon, href]) => (
+                <Link key={label as string} href={href as string} className={`nav-item ${pathname === href ? 'active' : ''}`} title={collapsed ? label as string : undefined}>
+                  <Icon className="size-[18px]" /><span>{!collapsed && label as string}</span>
+                </Link>
+              ))}
+            </>
+          )}
           <div className="my-4 border-t border-border" />
           {bottomNavItems.map(([label, Icon, href]) => (
             <Link key={label as string} href={href as string} className="nav-item" title={collapsed ? label as string : undefined}>

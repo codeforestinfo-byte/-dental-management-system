@@ -3,7 +3,7 @@ import type { ApiResponse, PaginatedResponse } from '@/types/common.types'
 import type { BillResponse, PaymentRequest } from '@/types/billing.types'
 
 export const billingService = {
-  async getAll(params?: { page?: number; size?: number; sort?: string }): Promise<ApiResponse<PaginatedResponse<BillResponse>>> {
+  async getAll(params?: { page?: number; size?: number; sort?: string }): Promise<PaginatedResponse<BillResponse>> {
     const res = await api.get('/api/v1/bills', { params })
     return res.data
   },

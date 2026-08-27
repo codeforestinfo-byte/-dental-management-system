@@ -6,7 +6,9 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  content: T[]
+  success: boolean
+  message: string
+  data: T[]
   currentPage: number
   totalPages: number
   totalElements: number

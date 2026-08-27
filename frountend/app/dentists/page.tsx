@@ -15,13 +15,17 @@ export default function DentistsPage() {
   const [editingDentist, setEditingDentist] = useState<DentistResponse | null>(null)
   const [form, setForm] = useState({ dentistName: '', specialization: '', contactNumber: '', email: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [apiError, setApiError] = useState('')
 
   const fetchDentists = async () => {
     try {
       setLoading(true)
+      setApiError('')
       const res = await dentistService.getAll({ size: 100 })
-      if (res.success) setDentists(res.data?.content || [])
-    } catch { /* empty */ } finally { setLoading(false) }
+      if (res.success) setDentists(res.data || [])
+    } catch (err: any) {
+      setApiError(err?.response?.data?.message || err?.message || 'Failed to load dentists.')
+    } finally { setLoading(false) }
   }
 
   useEffect(() => { fetchDentists() }, [])
@@ -29,25 +33,38 @@ export default function DentistsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
+    setApiError('')
     try {
       if (editingDentist) { await dentistService.update(editingDentist.id, form) }
       else { await dentistService.create(form) }
       setShowForm(false); setEditingDentist(null)
       setForm({ dentistName: '', specialization: '', contactNumber: '', email: '' })
       fetchDentists()
-    } catch { /* empty */ } finally { setSubmitting(false) }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to save dentist.'
+      setApiError(msg)
+    } finally { setSubmitting(false) }
   }
 
   const handleDeactivate = async (id: number) => {
     if (!confirm('Deactivate this dentist?')) return
-    try { await dentistService.deactivate(id); fetchDentists() } catch { /* empty */ }
+    try { await dentistService.deactivate(id); fetchDentists() } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to deactivate dentist.'
+      setApiError(msg)
+    }
   }
 
   return (
     <DashboardLayout title="Dentists">
       <div className="mb-6 flex justify-end">
-        <Button onClick={() => { setEditingDentist(null); setForm({ dentistName: '', specialization: '', contactNumber: '', email: '' }); setShowForm(true) }}><Plus className="mr-2 size-4" />Add Dentist</Button>
+        <Button onClick={() => { setEditingDentist(null); setForm({ dentistName: '', specialization: '', contactNumber: '', email: '' }); setApiError(''); setShowForm(true) }}><Plus className="mr-2 size-4" />Add Dentist</Button>
       </div>
+
+      {apiError && (
+        <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {apiError}
+        </div>
+      )}
 
       {showForm && (
         <Card className="mb-6">

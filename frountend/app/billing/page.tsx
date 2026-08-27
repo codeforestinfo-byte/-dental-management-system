@@ -19,7 +19,7 @@ export default function BillingPage() {
     try {
       setLoading(true)
       const res = await billingService.getAll({ size: 100 })
-      if (res.success) setBills(res.data?.content || [])
+      if (res.success) setBills(res.data || [])
     } catch { /* empty */ } finally { setLoading(false) }
   }
 

@@ -3,7 +3,7 @@ import type { ApiResponse, PaginatedResponse } from '@/types/common.types'
 import type { TreatmentRequest, TreatmentResponse } from '@/types/treatment.types'
 
 export const treatmentService = {
-  async getAll(params?: { page?: number; size?: number; sort?: string }): Promise<ApiResponse<PaginatedResponse<TreatmentResponse>>> {
+  async getAll(params?: { page?: number; size?: number; sort?: string }): Promise<PaginatedResponse<TreatmentResponse>> {
     const res = await api.get('/api/v1/treatments', { params })
     return res.data
   },

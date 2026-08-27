@@ -15,7 +15,7 @@ export default function AuditPage() {
     async function fetchLogs() {
       try {
         const res = await auditService.getAll({ size: 100 })
-        if (res.success) setLogs(res.data?.content || [])
+        if (res.success) setLogs(res.data || [])
       } catch { /* empty */ } finally { setLoading(false) }
     }
     fetchLogs()
