@@ -29,8 +29,14 @@ public class Treatment {
     @Column(length = 500)
     private String description;
 
+    @Column(length = 50)
+    private String category;
+
     @Column(name = "treatment_fee", nullable = false, precision = 10, scale = 2)
     private BigDecimal treatmentFee;
+
+    @Column(name = "estimated_duration_minutes")
+    private Integer estimatedDurationMinutes;
 
     @Column(nullable = false)
     @Builder.Default

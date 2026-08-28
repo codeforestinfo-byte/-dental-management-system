@@ -1,7 +1,9 @@
 export interface TreatmentRequest {
   treatmentName: string
   description: string
-  treatmentFee: number
+  category: string
+  treatmentFee: number | string
+  estimatedDurationMinutes: string
 }
 
 export interface TreatmentResponse {
@@ -9,7 +11,9 @@ export interface TreatmentResponse {
   treatmentCode: string
   treatmentName: string
   description: string
+  category: string
   treatmentFee: number
+  estimatedDurationMinutes: number
   active: boolean
   createdAt: string
   updatedAt: string

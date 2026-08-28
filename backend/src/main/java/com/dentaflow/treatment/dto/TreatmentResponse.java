@@ -18,7 +18,9 @@ public class TreatmentResponse {
     private String treatmentCode;
     private String treatmentName;
     private String description;
+    private String category;
     private BigDecimal treatmentFee;
+    private Integer estimatedDurationMinutes;
     private boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

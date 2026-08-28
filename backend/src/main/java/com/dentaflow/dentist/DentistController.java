@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,10 +29,23 @@ public class DentistController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<DentistResponse>> createDentist(
-            @Valid @RequestBody DentistRequest request,
+            @ModelAttribute @Valid DentistRequest request,
+            @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto,
+            @RequestParam(value = "resume", required = false) MultipartFile resume,
             @AuthenticationPrincipal UserDetails userDetails,
             HttpServletRequest httpRequest) {
         DentistResponse response = dentistService.createDentist(request);
+
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            String photoUrl = dentistService.saveProfilePhoto(response.getId(), profilePhoto);
+            response.setProfilePhotoUrl(photoUrl);
+        }
+
+        if (resume != null && !resume.isEmpty()) {
+            String resumeUrl = dentistService.saveResume(response.getId(), resume);
+            response.setResumeUrl(resumeUrl);
+        }
+
         auditService.logWithUser(userDetails.getUsername(), "CREATE", "DENTIST",
                 response.getId(), "Created dentist: " + response.getDentistCode(),
                 getClientIp(httpRequest));
@@ -70,14 +84,53 @@ public class DentistController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<DentistResponse>> updateDentist(
             @PathVariable Long id,
-            @Valid @RequestBody DentistRequest request,
+            @ModelAttribute @Valid DentistRequest request,
+            @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto,
+            @RequestParam(value = "resume", required = false) MultipartFile resume,
             @AuthenticationPrincipal UserDetails userDetails,
             HttpServletRequest httpRequest) {
         DentistResponse response = dentistService.updateDentist(id, request);
+
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            String photoUrl = dentistService.saveProfilePhoto(id, profilePhoto);
+            response.setProfilePhotoUrl(photoUrl);
+        }
+
+        if (resume != null && !resume.isEmpty()) {
+            String resumeUrl = dentistService.saveResume(id, resume);
+            response.setResumeUrl(resumeUrl);
+        }
+
         auditService.logWithUser(userDetails.getUsername(), "UPDATE", "DENTIST",
                 id, "Updated dentist: " + response.getDentistCode(),
                 getClientIp(httpRequest));
         return ResponseEntity.ok(ApiResponse.success("Dentist updated successfully", response));
+    }
+
+    @PostMapping("/{id}/profile-photo")
+    public ResponseEntity<ApiResponse<String>> uploadProfilePhoto(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpRequest) {
+        String url = dentistService.saveProfilePhoto(id, file);
+        auditService.logWithUser(userDetails.getUsername(), "UPLOAD", "DENTIST",
+                id, "Uploaded profile photo for dentist ID: " + id,
+                getClientIp(httpRequest));
+        return ResponseEntity.ok(ApiResponse.success("Profile photo uploaded", url));
+    }
+
+    @PostMapping("/{id}/resume")
+    public ResponseEntity<ApiResponse<String>> uploadResume(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpRequest) {
+        String url = dentistService.saveResume(id, file);
+        auditService.logWithUser(userDetails.getUsername(), "UPLOAD", "DENTIST",
+                id, "Uploaded resume for dentist ID: " + id,
+                getClientIp(httpRequest));
+        return ResponseEntity.ok(ApiResponse.success("Resume uploaded", url));
     }
 
     @DeleteMapping("/{id}")
