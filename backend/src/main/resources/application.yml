@@ -72,6 +72,8 @@ jwt:
 
 app:
   name: DentaFlow
+  upload:
+    dentist-dir: uploads/dentists
   dental-clinic:
     name: Sunrise Dental
     address: 123 Dental Street, Medical City

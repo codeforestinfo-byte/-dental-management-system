@@ -1,7 +1,6 @@
 package com.dentaflow.treatment;
 
 import com.dentaflow.common.exception.ResourceNotFoundException;
-import com.dentaflow.common.util.NumberGenerator;
 import com.dentaflow.treatment.dto.TreatmentRequest;
 import com.dentaflow.treatment.dto.TreatmentResponse;
 import com.dentaflow.common.mapper.TreatmentMapper;
@@ -30,6 +29,8 @@ public class TreatmentService {
         Treatment treatment = treatmentMapper.toEntity(request);
         treatment.setTreatmentCode(generateTreatmentCode(request.getTreatmentName()));
         treatment.setActive(true);
+        treatment.setCategory(request.getCategory());
+        treatment.setEstimatedDurationMinutes(parseIntSafe(request.getEstimatedDurationMinutes()));
 
         Treatment savedTreatment = treatmentRepository.save(treatment);
         log.info("Created treatment: {}", savedTreatment.getTreatmentCode());
@@ -57,7 +58,12 @@ public class TreatmentService {
         Treatment treatment = treatmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Treatment", "id", id));
 
-        treatmentMapper.updateEntityFromRequest(request, treatment);
+        treatment.setTreatmentName(request.getTreatmentName());
+        treatment.setDescription(request.getDescription());
+        treatment.setTreatmentFee(request.getTreatmentFee());
+        treatment.setCategory(request.getCategory());
+        treatment.setEstimatedDurationMinutes(parseIntSafe(request.getEstimatedDurationMinutes()));
+
         Treatment updatedTreatment = treatmentRepository.save(treatment);
         log.info("Updated treatment: {}", updatedTreatment.getTreatmentCode());
         return treatmentMapper.toResponse(updatedTreatment);
@@ -83,5 +89,14 @@ public class TreatmentService {
         String prefix = treatmentName.substring(0, Math.min(3, treatmentName.length())).toUpperCase();
         long timestamp = System.currentTimeMillis() % 10000;
         return String.format("TRT-%s-%04d", prefix, timestamp);
+    }
+
+    private Integer parseIntSafe(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

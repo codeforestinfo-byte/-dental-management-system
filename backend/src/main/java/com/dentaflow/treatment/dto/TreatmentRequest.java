@@ -2,7 +2,6 @@ package com.dentaflow.treatment.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -15,7 +14,10 @@ public class TreatmentRequest {
 
     private String description;
 
+    private String category;
+
     @NotNull(message = "Treatment fee is required")
-    @Positive(message = "Treatment fee must be positive")
     private BigDecimal treatmentFee;
+
+    private String estimatedDurationMinutes;
 }
