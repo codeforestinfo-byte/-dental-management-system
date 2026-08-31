@@ -7,8 +7,8 @@ import { usePathname } from 'next/navigation'
 import {
   Activity, AlertTriangle, Bell, CalendarDays, ChevronDown, ChevronLeft, ChevronRight,
   CircleHelp, Clock3, CreditCard, FileBarChart, HeartPulse, LayoutDashboard, Menu,
-  MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, Stethoscope,
-  Users, Wifi, X, CheckCircle2, UserRoundPlus, ReceiptText, ShieldAlert, ArrowUpRight,
+  MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, Search, Stethoscope,
+  Users, Wifi, X, CheckCircle2, UserRoundPlus, ReceiptText, ArrowUpRight,
   LogOut, Loader2,
 } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -67,12 +67,10 @@ const navItems = [
   ['Treatments', Activity, '/treatments'],
   ['Billing', CreditCard, '/billing'],
   ['Reports', FileBarChart, '/reports'],
-  ['Audit Logs', ShieldAlert, '/audit'],
 ]
 
 const bottomNavItems = [
   ['Help', CircleHelp, '/help'],
-  ['Settings', Settings, '/settings'],
 ]
 
 export default function Page() {

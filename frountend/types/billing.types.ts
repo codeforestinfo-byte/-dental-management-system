@@ -1,26 +1,10 @@
 export interface BillResponse {
   id: number
   billNumber: string
-  appointment: {
-    id: number
-    appointmentNumber: string
-    appointmentDate: string
-    appointmentTime: string
-    patient: {
-      id: number
-      patientNumber: string
-      firstName: string
-      lastName: string
-    }
-    dentist: {
-      id: number
-      dentistName: string
-    }
-    treatment: {
-      id: number
-      treatmentName: string
-    }
-  }
+  appointmentId: number
+  patientName: string
+  dentistName: string
+  treatmentName: string
   consultationFee: number
   treatmentFee: number
   totalAmount: number
@@ -29,7 +13,6 @@ export interface BillResponse {
   billStatus: 'UNPAID' | 'PARTIAL' | 'PAID' | 'REFUNDED'
   payments: PaymentResponse[]
   createdAt: string
-  updatedAt: string
 }
 
 export interface PaymentRequest {
@@ -43,5 +26,24 @@ export interface PaymentResponse {
   paymentMethod: string
   paymentAmount: number
   reference: string
-  paymentDate: string
+  createdAt: string
+}
+
+export interface BillListParams {
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: string
+  status?: string
+  search?: string
+}
+
+export interface AppointmentWithoutBill {
+  id: number
+  appointmentNumber: string
+  patientName: string
+  dentistName: string
+  treatmentName: string
+  appointmentDate: string
+  appointmentTime: string
 }

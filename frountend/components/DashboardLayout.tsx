@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   Activity, Bell, CircleHelp, CreditCard, FileBarChart, HeartPulse, LayoutDashboard,
-  Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, ShieldAlert, Stethoscope,
+  Menu, PanelLeftClose, PanelLeftOpen, Search, Stethoscope,
   Users, X, ArrowUpRight, LogOut, CalendarDays, Loader2, UserCog,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,12 +20,10 @@ const navItems = [
   ['Treatments', Activity, '/treatments'],
   ['Billing', CreditCard, '/billing'],
   ['Reports', FileBarChart, '/reports'],
-  ['Audit Logs', ShieldAlert, '/audit'],
 ]
 
 const bottomNavItems = [
   ['Help', CircleHelp, '/help'],
-  ['Settings', Settings, '/settings'],
 ]
 
 export default function DashboardLayout({ children, title }: { children: React.ReactNode; title?: string }) {
