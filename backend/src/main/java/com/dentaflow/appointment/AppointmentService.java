@@ -2,6 +2,8 @@ package com.dentaflow.appointment;
 
 import com.dentaflow.appointment.dto.AppointmentRequest;
 import com.dentaflow.appointment.dto.AppointmentResponse;
+import com.dentaflow.billing.BillRepository;
+import com.dentaflow.billing.BillService;
 import com.dentaflow.common.exception.BadRequestException;
 import com.dentaflow.common.exception.ResourceNotFoundException;
 import com.dentaflow.common.mapper.AppointmentMapper;
@@ -38,6 +40,8 @@ public class AppointmentService {
     private final DentistRepository dentistRepository;
     private final TreatmentRepository treatmentRepository;
     private final AppointmentMapper appointmentMapper;
+    private final BillService billService;
+    private final BillRepository billRepository;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest request) {
@@ -160,6 +164,16 @@ public class AppointmentService {
         appointment.setStatus(newStatus);
         Appointment updatedAppointment = appointmentRepository.save(appointment);
         log.info("Updated appointment {} status to {}", updatedAppointment.getAppointmentNumber(), status);
+
+        if (newStatus == Appointment.AppointmentStatus.COMPLETED && !billRepository.existsByAppointmentId(id)) {
+            try {
+                billService.generateBill(id);
+                log.info("Auto-generated bill for completed appointment: {}", updatedAppointment.getAppointmentNumber());
+            } catch (Exception e) {
+                log.error("Failed to auto-generate bill for appointment {}: {}", updatedAppointment.getAppointmentNumber(), e.getMessage());
+            }
+        }
+
         return appointmentMapper.toResponse(updatedAppointment);
     }
 

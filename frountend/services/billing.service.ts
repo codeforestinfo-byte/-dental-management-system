@@ -1,9 +1,9 @@
 import api from '@/lib/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/common.types'
-import type { BillResponse, PaymentRequest } from '@/types/billing.types'
+import type { BillResponse, BillListParams, PaymentRequest, AppointmentWithoutBill } from '@/types/billing.types'
 
 export const billingService = {
-  async getAll(params?: { page?: number; size?: number; sort?: string }): Promise<PaginatedResponse<BillResponse>> {
+  async getAll(params?: BillListParams): Promise<PaginatedResponse<BillResponse>> {
     const res = await api.get('/api/v1/bills', { params })
     return res.data
   },
@@ -23,8 +23,18 @@ export const billingService = {
     return res.data
   },
 
+  async processRefund(billId: number): Promise<ApiResponse<BillResponse>> {
+    const res = await api.post(`/api/v1/bills/${billId}/refund`)
+    return res.data
+  },
+
   async downloadPdf(id: number): Promise<Blob> {
     const res = await api.get(`/api/v1/bills/pdf/${id}`, { responseType: 'blob' })
+    return res.data
+  },
+
+  async getCompletedAppointmentsWithoutBills(): Promise<ApiResponse<AppointmentWithoutBill[]>> {
+    const res = await api.get('/api/v1/bills/appointments/without-bills')
     return res.data
   },
 }

@@ -188,11 +188,11 @@ export default function PatientsPage() {
               {openSections.basic && (
                 <div className="grid gap-4 sm:grid-cols-2 p-4 border border-border rounded-lg">
                   <Field label="First Name" required>
-                    <input placeholder="John" value={form.firstName} onChange={e => set('firstName', e.target.value)} required className={inputClass} />
+                    <input placeholder="e.g. Kumara" value={form.firstName} onChange={e => set('firstName', e.target.value)} required className={inputClass} />
                     {errors.firstName && <p className="text-xs text-destructive mt-1">{errors.firstName}</p>}
                   </Field>
                   <Field label="Last Name" required>
-                    <input placeholder="Doe" value={form.lastName} onChange={e => set('lastName', e.target.value)} required className={inputClass} />
+                    <input placeholder="e.g. Perera" value={form.lastName} onChange={e => set('lastName', e.target.value)} required className={inputClass} />
                     {errors.lastName && <p className="text-xs text-destructive mt-1">{errors.lastName}</p>}
                   </Field>
                   <Field label="Date of Birth">
@@ -207,7 +207,7 @@ export default function PatientsPage() {
                     </select>
                   </Field>
                   <Field label="National ID / Passport">
-                    <input placeholder="123456789V" value={form.nationalId} onChange={e => set('nationalId', e.target.value)} className={inputClass} />
+                    <input placeholder="e.g. 901234567V" value={form.nationalId} onChange={e => set('nationalId', e.target.value)} className={inputClass} />
                   </Field>
                   <Field label="Marital Status">
                     <select value={form.maritalStatus} onChange={e => set('maritalStatus', e.target.value)} className={selectClass}>
@@ -231,7 +231,7 @@ export default function PatientsPage() {
                     <input placeholder="+94 11 234 5678" value={form.alternatePhone} onChange={e => set('alternatePhone', e.target.value)} className={inputClass} />
                   </Field>
                   <Field label="Email">
-                    <input type="email" placeholder="john@example.com" value={form.email} onChange={e => set('email', e.target.value)} className={inputClass} />
+                    <input type="email" placeholder="kumara@gmail.com" value={form.email} onChange={e => set('email', e.target.value)} className={inputClass} />
                     {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
                   </Field>
                   <div />
@@ -255,7 +255,7 @@ export default function PatientsPage() {
               {openSections.emergency && (
                 <div className="grid gap-4 sm:grid-cols-3 p-4 border border-border rounded-lg">
                   <Field label="Emergency Contact Name">
-                    <input placeholder="Jane Doe" value={form.emergencyContactName} onChange={e => set('emergencyContactName', e.target.value)} className={inputClass} />
+                    <input placeholder="Kamani Perera" value={form.emergencyContactName} onChange={e => set('emergencyContactName', e.target.value)} className={inputClass} />
                   </Field>
                   <Field label="Emergency Contact Number">
                     <input placeholder="+94 77 987 6543" value={form.emergencyContactNumber} onChange={e => set('emergencyContactNumber', e.target.value)} className={inputClass} />
@@ -333,10 +333,10 @@ export default function PatientsPage() {
                     <input type="date" value={form.lastDentalVisitDate} onChange={e => set('lastDentalVisitDate', e.target.value)} className={inputClass} />
                   </Field>
                   <Field label="Preferred Dentist">
-                    <input placeholder="Dr. Smith" value={form.preferredDentist} onChange={e => set('preferredDentist', e.target.value)} className={inputClass} />
+                    <input placeholder="Dr. Fernando" value={form.preferredDentist} onChange={e => set('preferredDentist', e.target.value)} className={inputClass} />
                   </Field>
                   <Field label="Referred By">
-                    <input placeholder="Dr. Johnson / Self / Website" value={form.referredBy} onChange={e => set('referredBy', e.target.value)} className={inputClass} />
+                    <input placeholder="Dr. Jayawardena / Self / Website" value={form.referredBy} onChange={e => set('referredBy', e.target.value)} className={inputClass} />
                   </Field>
                 </div>
               )}
