@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { patientService } from '@/services/patient.service'
 import type { PatientResponse } from '@/types/patient.types'
-import { Plus, Search, Loader2, Edit, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react'
+import PatientBarcode from '@/components/PatientBarcode'
+import PatientPrintCard from '@/components/PatientPrintCard'
+import { Plus, Search, Loader2, Edit, Trash2, X, ChevronDown, ChevronUp, Printer, Users, UserCheck, UserRound, Activity } from 'lucide-react'
 
 const emptyForm = {
   firstName: '', lastName: '', address: '', contactNumber: '', email: '', dateOfBirth: '', gender: 'MALE' as 'MALE' | 'FEMALE' | 'OTHER', medicalNotes: '',
@@ -58,6 +60,8 @@ export default function PatientsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [apiError, setApiError] = useState('')
+  const [newlyCreatedPatient, setNewlyCreatedPatient] = useState<PatientResponse | null>(null)
+  const [printingPatient, setPrintingPatient] = useState<PatientResponse | null>(null)
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basic: true, contact: false, emergency: false, medical: false, dental: false, insurance: false, admin: false,
@@ -115,7 +119,10 @@ export default function PatientsPage() {
       if (editingPatient) {
         await patientService.update(editingPatient.id, payload as any)
       } else {
-        await patientService.create(payload as any)
+        const res = await patientService.create(payload as any)
+        if (res.success && res.data) {
+          setNewlyCreatedPatient(res.data)
+        }
       }
       setShowForm(false)
       setEditingPatient(null)
@@ -157,7 +164,17 @@ export default function PatientsPage() {
 
   return (
     <DashboardLayout title="Patients">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ['Total Patients', patients.length.toString(), patients.length > 0 ? `${patients.length} registered` : 'No patients yet', Users, 'text-blue-600'],
+          ['Active Patients', patients.filter(p => p.status === 'ACTIVE').length.toString(), 'Currently active', UserCheck, 'text-emerald-600'],
+          ['Male Patients', patients.filter(p => p.gender === 'MALE').length.toString(), `Male registered`, UserRound, 'text-violet-600'],
+          ['Female Patients', patients.filter(p => p.gender === 'FEMALE').length.toString(), 'Female registered', Activity, 'text-pink-600'],
+        ].map(([label, value, meta, Icon, colorClass]) => (
+          <Card key={label as string} className="metric-card"><CardContent className="p-4"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-bold tracking-tight">{value as string}</p><p className="mt-1 text-[11px] text-muted-foreground">{meta as string}</p></div><div className={`icon-box ${colorClass}`}><Icon className="size-4" /></div></div></CardContent></Card>
+        ))}
+      </div>
+      <div className="mb-6 mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search patients by name, number, email, phone..." className="flex h-10 w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
@@ -399,6 +416,41 @@ export default function PatientsPage() {
         </Card>
       )}
 
+      {/* Patient Registration Success - Barcode Card */}
+      {newlyCreatedPatient && (
+        <Card className="mb-6 border-green-200 bg-green-50/50">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-lg font-semibold text-green-800">Patient Registered Successfully!</h3>
+                <p className="text-sm text-green-700 mt-1">
+                  {newlyCreatedPatient.firstName} {newlyCreatedPatient.lastName} has been registered.
+                </p>
+                <p className="text-xs text-green-600 mt-1 font-mono">
+                  Patient Number: {newlyCreatedPatient.patientNumber}
+                </p>
+                <div className="flex gap-2 mt-4 justify-center sm:justify-start">
+                  <button onClick={() => setPrintingPatient(newlyCreatedPatient)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                    <Printer className="size-4" />Print ID Card
+                  </button>
+                  <button onClick={() => setNewlyCreatedPatient(null)} className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-accent transition-colors">
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div className="flex-shrink-0 bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                <PatientBarcode patientNumber={newlyCreatedPatient.patientNumber} width={2} height={50} fontSize={14} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Print Card Modal */}
+      {printingPatient && (
+        <PatientPrintCard patient={printingPatient} onClose={() => setPrintingPatient(null)} />
+      )}
+
       {/* Patient List Table */}
       <Card>
         <CardContent className="p-0">
@@ -407,23 +459,25 @@ export default function PatientsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="data-table">
-                <thead><tr><th>NUMBER</th><th>NAME</th><th>CONTACT</th><th>EMAIL</th><th>GENDER</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                <thead><tr><th>NUMBER</th><th>BARCODE</th><th>NAME</th><th>CONTACT</th><th>EMAIL</th><th>GENDER</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
                 <tbody>
                   {patients.map(p => (
                     <tr key={p.id}>
                       <td className="font-mono text-xs">{p.patientNumber}</td>
+                      <td><PatientBarcode patientNumber={p.patientNumber} width={0.8} height={25} fontSize={0} displayValue={false} /></td>
                       <td className="font-medium">{p.firstName} {p.lastName}</td>
                       <td>{p.contactNumber}</td>
                       <td>{p.email}</td>
                       <td>{p.gender}</td>
                       <td><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${p.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{p.status}</span></td>
                       <td className="flex gap-1">
+                        <button onClick={() => setPrintingPatient(p)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Print ID Card"><Printer className="size-4" /></button>
                         <button onClick={() => startEdit(p)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Edit"><Edit className="size-4" /></button>
                         <button onClick={() => handleDelete(p.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Delete"><Trash2 className="size-4" /></button>
                       </td>
                     </tr>
                   ))}
-                  {!patients.length && <tr><td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">No patients found.</td></tr>}
+                  {!patients.length && <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No patients found.</td></tr>}
                 </tbody>
               </table>
             </div>

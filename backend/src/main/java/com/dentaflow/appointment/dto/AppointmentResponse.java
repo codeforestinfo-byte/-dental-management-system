@@ -28,6 +28,8 @@ public class AppointmentResponse {
     private LocalTime appointmentTime;
     private Appointment.AppointmentStatus status;
     private String notes;
+    private String patientAddress;
+    private String patientContact;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

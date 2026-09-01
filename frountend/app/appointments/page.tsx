@@ -12,7 +12,7 @@ import type { AppointmentResponse } from '@/types/appointment.types'
 import type { PatientResponse } from '@/types/patient.types'
 import type { DentistResponse } from '@/types/dentist.types'
 import type { TreatmentResponse } from '@/types/treatment.types'
-import { Plus, Loader2, Edit, X } from 'lucide-react'
+import { Plus, Loader2, Edit, X, ScanBarcode, CalendarDays, Clock3, CheckCircle2, XCircle } from 'lucide-react'
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([])
@@ -22,9 +22,12 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingAppt, setEditingAppt] = useState<AppointmentResponse | null>(null)
-  const [form, setForm] = useState({ patientId: 0, dentistId: 0, treatmentId: 0, appointmentDate: '', appointmentTime: '', notes: '' })
+  const [form, setForm] = useState({ patientId: 0, dentistId: 0, treatmentId: 0, appointmentDate: '', appointmentTime: '', notes: '', patientAddress: '', patientContact: '' })
   const [submitting, setSubmitting] = useState(false)
   const [apiError, setApiError] = useState('')
+  const [barcodeScan, setBarcodeScan] = useState('')
+  const [scanning, setScanning] = useState(false)
+  const [scanMessage, setScanMessage] = useState('')
 
   const fetchAll = async () => {
     try {
@@ -47,6 +50,27 @@ export default function AppointmentsPage() {
 
   useEffect(() => { fetchAll() }, [])
 
+  const handleBarcodeScan = async () => {
+    const code = barcodeScan.trim()
+    if (!code) return
+    setScanning(true)
+    setScanMessage('')
+    try {
+      const res = await patientService.getByBarcode(code)
+      if (res.success && res.data) {
+        const p = res.data
+        setForm({ ...form, patientId: p.id, patientAddress: p.address || '', patientContact: p.contactNumber || '' })
+        setScanMessage(`Patient found: ${p.firstName} ${p.lastName} (${p.patientNumber})`)
+        setBarcodeScan('')
+      } else {
+        setScanMessage(res.message || 'Patient not found. Try again or select manually.')
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Patient not found. Try again or select manually.'
+      setScanMessage(msg)
+    } finally { setScanning(false) }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setApiError('')
@@ -55,7 +79,7 @@ export default function AppointmentsPage() {
       if (editingAppt) { await appointmentService.update(editingAppt.id, form) }
       else { await appointmentService.create(form) }
       setShowForm(false); setEditingAppt(null)
-      setForm({ patientId: 0, dentistId: 0, treatmentId: 0, appointmentDate: '', appointmentTime: '', notes: '' })
+      setForm({ patientId: 0, dentistId: 0, treatmentId: 0, appointmentDate: '', appointmentTime: '', notes: '', patientAddress: '', patientContact: '' })
       fetchAll()
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Failed to save appointment.'
@@ -77,11 +101,21 @@ export default function AppointmentsPage() {
     return 'status-badge muted'
   }
 
-  const emptyForm = { patientId: 0, dentistId: 0, treatmentId: 0, appointmentDate: '', appointmentTime: '', notes: '' }
+  const emptyForm = { patientId: 0, dentistId: 0, treatmentId: 0, appointmentDate: '', appointmentTime: '', notes: '', patientAddress: '', patientContact: '' }
 
   return (
     <DashboardLayout title="Appointments">
-      <div className="mb-6 flex justify-end">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ['Total Appointments', appointments.length.toString(), appointments.length > 0 ? `${appointments.length} booked` : 'No appointments', CalendarDays, 'text-blue-600'],
+          ['Scheduled', appointments.filter(a => a.status === 'SCHEDULED').length.toString(), 'Upcoming appointments', Clock3, 'text-amber-600'],
+          ['Completed', appointments.filter(a => a.status === 'COMPLETED').length.toString(), 'Finished appointments', CheckCircle2, 'text-emerald-600'],
+          ['Cancelled', appointments.filter(a => a.status === 'CANCELLED').length.toString(), 'Cancelled appointments', XCircle, 'text-red-600'],
+        ].map(([label, value, meta, Icon, colorClass]) => (
+          <Card key={label as string} className="metric-card"><CardContent className="p-4"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-bold tracking-tight">{value as string}</p><p className="mt-1 text-[11px] text-muted-foreground">{meta as string}</p></div><div className={`icon-box ${colorClass}`}><Icon className="size-4" /></div></div></CardContent></Card>
+        ))}
+      </div>
+      <div className="mb-6 mt-6 flex justify-end">
         <Button onClick={() => { setEditingAppt(null); setForm({ ...emptyForm }); setApiError(''); setShowForm(true) }}><Plus className="mr-2 size-4" />New Appointment</Button>
       </div>
 
@@ -96,10 +130,42 @@ export default function AppointmentsPage() {
           <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-sm">{editingAppt ? 'Edit Appointment' : 'New Appointment'}</CardTitle><button onClick={() => { setShowForm(false); setEditingAppt(null) }}><X className="size-4" /></button></CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-              <select value={form.patientId} onChange={e => setForm({ ...form, patientId: parseInt(e.target.value) })} required className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
-                <option value={0}>Select Patient</option>
-                {patients.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
-              </select>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium text-foreground mb-1 block">Patient</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <ScanBarcode className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={barcodeScan}
+                      onChange={e => setBarcodeScan(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleBarcodeScan() } }}
+                      placeholder="Scan barcode or type patient number..."
+                      className="flex h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:border-primary"
+                    />
+                  </div>
+                  <Button type="button" variant="outline" onClick={handleBarcodeScan} disabled={scanning || !barcodeScan.trim()} className="shrink-0">
+                    {scanning ? <Loader2 className="size-4 animate-spin" /> : <ScanBarcode className="size-4" />}
+                  </Button>
+                </div>
+                {scanMessage && (
+                  <p className={`text-xs mt-1 ${scanMessage.includes('found:') ? 'text-green-600' : 'text-destructive'}`}>{scanMessage}</p>
+                )}
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium text-foreground mb-1 block">Or Select Patient Manually</label>
+                <select value={form.patientId} onChange={e => {
+                  const pid = parseInt(e.target.value)
+                  const selected = patients.find(p => p.id === pid)
+                  setForm({ ...form, patientId: pid, patientAddress: selected?.address || '', patientContact: selected?.contactNumber || '' })
+                  setScanMessage('')
+                }} required className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary w-full">
+                  <option value={0}>Select Patient</option>
+                  {patients.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName} ({p.patientNumber})</option>)}
+                </select>
+              </div>
+              <input type="text" value={form.patientAddress} onChange={e => setForm({ ...form, patientAddress: e.target.value })} placeholder="Patient Address" className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+              <input type="text" value={form.patientContact} onChange={e => setForm({ ...form, patientContact: e.target.value })} placeholder="Contact Number" className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
               <select value={form.dentistId} onChange={e => setForm({ ...form, dentistId: parseInt(e.target.value) })} required className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
                 <option value={0}>Select Dentist</option>
                 {dentists.map(d => <option key={d.id} value={d.id}>{d.dentistName}</option>)}
@@ -127,12 +193,14 @@ export default function AppointmentsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="data-table">
-                <thead><tr><th>NUMBER</th><th>PATIENT</th><th>DENTIST</th><th>TREATMENT</th><th>DATE</th><th>TIME</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                <thead><tr><th>NUMBER</th><th>PATIENT</th><th>ADDRESS</th><th>CONTACT</th><th>DENTIST</th><th>TREATMENT</th><th>DATE</th><th>TIME</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
                 <tbody>
                   {appointments.map(a => (
                     <tr key={a.id}>
                       <td className="font-mono text-xs">{a.appointmentNumber}</td>
                       <td className="font-medium">{a.patientName}</td>
+                      <td className="text-xs">{a.patientAddress}</td>
+                      <td className="text-xs">{a.patientContact}</td>
                       <td>{a.dentistName}</td>
                       <td>{a.treatmentName}</td>
                       <td>{a.appointmentDate}</td>
@@ -140,14 +208,14 @@ export default function AppointmentsPage() {
                       <td><span className={statusColor(a.status)}>{a.status}</span></td>
                       <td>
                         <div className="flex gap-1">
-                          <button onClick={() => { setEditingAppt(a); setForm({ patientId: a.patientId, dentistId: a.dentistId, treatmentId: a.treatmentId, appointmentDate: a.appointmentDate, appointmentTime: a.appointmentTime, notes: a.notes || '' }); setShowForm(true) }} className="rounded p-1 text-muted-foreground hover:bg-accent"><Edit className="size-4" /></button>
+                          <button onClick={() => { setEditingAppt(a); setForm({ patientId: a.patientId, dentistId: a.dentistId, treatmentId: a.treatmentId, appointmentDate: a.appointmentDate, appointmentTime: a.appointmentTime, notes: a.notes || '', patientAddress: a.patientAddress || '', patientContact: a.patientContact || '' }); setShowForm(true) }} className="rounded p-1 text-muted-foreground hover:bg-accent"><Edit className="size-4" /></button>
                           {a.status === 'SCHEDULED' && <button onClick={() => handleStatusChange(a.id, 'COMPLETED')} className="rounded p-1 text-emerald-600 hover:bg-emerald-50" title="Complete">✓</button>}
                           {a.status === 'SCHEDULED' && <button onClick={() => handleStatusChange(a.id, 'CANCELLED')} className="rounded p-1 text-destructive hover:bg-destructive/10" title="Cancel">✕</button>}
                         </div>
                       </td>
                     </tr>
                   ))}
-                  {!appointments.length && <tr><td colSpan={8} className="p-8 text-center text-sm text-muted-foreground">No appointments found.</td></tr>}
+                  {!appointments.length && <tr><td colSpan={10} className="p-8 text-center text-sm text-muted-foreground">No appointments found.</td></tr>}
                 </tbody>
               </table>
             </div>

@@ -98,4 +98,11 @@ public class PatientService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("firstName").ascending());
         return patientRepository.searchPatients(search, pageable).map(patientMapper::toResponse);
     }
+
+    @Transactional(readOnly = true)
+    public PatientResponse getPatientByNumber(String patientNumber) {
+        Patient patient = patientRepository.findByPatientNumber(patientNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", "patientNumber", patientNumber));
+        return patientMapper.toResponse(patient);
+    }
 }

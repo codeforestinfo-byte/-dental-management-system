@@ -53,6 +53,27 @@ public class PatientController {
                 patientPage.getSize()));
     }
 
+    @GetMapping("/barcode")
+    public ResponseEntity<ApiResponse<PatientResponse>> getPatientByBarcode(@RequestParam String number) {
+        PatientResponse response = patientService.getPatientByNumber(number);
+        return ResponseEntity.ok(ApiResponse.success("Patient found by barcode", response));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<PaginatedResponse<PatientResponse>> searchPatients(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        size = Math.min(size, AppConstants.MAX_PAGE_SIZE);
+        Page<PatientResponse> patientPage = patientService.searchPatients(q, page, size);
+        return ResponseEntity.ok(PaginatedResponse.of(
+                patientPage.getContent(),
+                patientPage.getNumber(),
+                patientPage.getTotalPages(),
+                patientPage.getTotalElements(),
+                patientPage.getSize()));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PatientResponse>> getPatientById(@PathVariable Long id) {
         PatientResponse response = patientService.getPatientById(id);
@@ -81,21 +102,6 @@ public class PatientController {
         auditService.logWithUser(userDetails.getUsername(), "DELETE", "PATIENT",
                 id, "Deleted patient", getClientIp(httpRequest));
         return ResponseEntity.ok(ApiResponse.success("Patient deleted successfully"));
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<PaginatedResponse<PatientResponse>> searchPatients(
-            @RequestParam String q,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        size = Math.min(size, AppConstants.MAX_PAGE_SIZE);
-        Page<PatientResponse> patientPage = patientService.searchPatients(q, page, size);
-        return ResponseEntity.ok(PaginatedResponse.of(
-                patientPage.getContent(),
-                patientPage.getNumber(),
-                patientPage.getTotalPages(),
-                patientPage.getTotalElements(),
-                patientPage.getSize()));
     }
 
     private String getClientIp(HttpServletRequest request) {
