@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { reportService } from '@/services/report.service'
 import type { DailyReportResponse, DentistPerformanceResponse } from '@/types/report.types'
 import { Loader2, BarChart3, TrendingUp, Users } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useAuth } from '@/contexts/AuthContext'
 
 function getWeekStart() {
   const now = new Date()
@@ -22,8 +24,18 @@ export default function ReportsPage() {
   const [weeklyReports, setWeeklyReports] = useState<DailyReportResponse[]>([])
   const [dentistPerf, setDentistPerf] = useState<DentistPerformanceResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
+    if (user && user.roles?.includes('RECEPTIONIST')) {
+      router.replace('/')
+    }
+  }, [user, router])
+
+  useEffect(() => {
+    if (user?.roles?.includes('RECEPTIONIST')) return
+    if (!user) return
     async function fetch() {
       try {
         setLoading(true)
@@ -39,7 +51,7 @@ export default function ReportsPage() {
       } catch { /* empty */ } finally { setLoading(false) }
     }
     fetch()
-  }, [])
+  }, [user])
 
   return (
     <DashboardLayout title="Reports">

@@ -53,6 +53,12 @@ public class Appointment {
     @Column(length = 500)
     private String notes;
 
+    @Column(name = "patient_address", length = 500)
+    private String patientAddress;
+
+    @Column(name = "patient_contact", length = 20)
+    private String patientContact;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

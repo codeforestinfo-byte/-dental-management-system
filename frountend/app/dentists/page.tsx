@@ -5,8 +5,10 @@ import DashboardLayout from '@/components/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { dentistService } from '@/services/dentist.service'
+import { attendanceService } from '@/services/attendance.service'
 import type { DentistRequest, DentistResponse } from '@/types/dentist.types'
-import { Plus, Search, Loader2, Edit, X, CheckCircle2, XCircle, ChevronDown, ChevronUp, Upload, FileText, User } from 'lucide-react'
+import type { DentistAttendance } from '@/types/attendance.types'
+import { Plus, Search, Loader2, Edit, X, CheckCircle2, XCircle, ChevronDown, ChevronUp, Upload, FileText, User, Stethoscope, UserCheck, Clock, Briefcase, CalendarCheck } from 'lucide-react'
 
 const SPECIALIZATIONS = [
   'Orthodontist', 'Endodontist', 'Oral Surgeon', 'Periodontist',
@@ -93,6 +95,13 @@ export default function DentistsPage() {
   const profilePhotoInputRef = useRef<HTMLInputElement>(null)
   const resumeInputRef = useRef<HTMLInputElement>(null)
 
+  const [activeTab, setActiveTab] = useState<'list' | 'attendance'>('list')
+  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
+  const [attendanceMap, setAttendanceMap] = useState<Record<number, DentistAttendance>>({})
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
+  const [attendanceSaving, setAttendanceSaving] = useState<number | null>(null)
+  const [attendanceError, setAttendanceError] = useState('')
+
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basic: true, professional: false, contact: false, work: false, schedule: false, documents: false,
   })
@@ -112,6 +121,38 @@ export default function DentistsPage() {
   }
 
   useEffect(() => { fetchDentists() }, [])
+
+  const fetchAttendance = async () => {
+    try {
+      setAttendanceLoading(true)
+      setAttendanceError('')
+      const res = await attendanceService.getByDate(attendanceDate)
+      if (res.success && res.data) {
+        const map: Record<number, DentistAttendance> = {}
+        res.data.forEach((a: DentistAttendance) => { map[a.dentist.id] = a })
+        setAttendanceMap(map)
+      }
+    } catch (err: any) {
+      const { message } = extractErrors(err)
+      setAttendanceError(message || 'Failed to load attendance data.')
+    } finally { setAttendanceLoading(false) }
+  }
+
+  useEffect(() => { if (activeTab === 'attendance') fetchAttendance() }, [activeTab, attendanceDate])
+
+  const handleAttendanceToggle = async (dentistId: number) => {
+    try {
+      setAttendanceSaving(dentistId)
+      setAttendanceError('')
+      const current = attendanceMap[dentistId]
+      const newStatus = current?.status === 'ABSENT' ? 'PRESENT' : 'ABSENT'
+      await attendanceService.mark({ dentistId, attendanceDate, status: newStatus })
+      await fetchAttendance()
+    } catch (err: any) {
+      const { message } = extractErrors(err)
+      setAttendanceError(message || 'Failed to update attendance. Please try again.')
+    } finally { setAttendanceSaving(null) }
+  }
 
   const getAvailableDays = (): string[] => {
     try { return JSON.parse(form.availableDays) } catch { return [] }
@@ -230,7 +271,75 @@ export default function DentistsPage() {
 
   return (
     <DashboardLayout title="Dentists">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ['Total Dentists', dentists.length.toString(), dentists.length > 0 ? `${dentists.length} registered` : 'No dentists yet', Stethoscope, 'text-blue-600'],
+          ['Active Dentists', dentists.filter(d => d.active).length.toString(), 'Currently active', UserCheck, 'text-emerald-600'],
+          ['Full Time', dentists.filter(d => d.employmentType === 'Full Time').length.toString(), 'Full time staff', Clock, 'text-violet-600'],
+          ['Part Time / Visiting', dentists.filter(d => d.employmentType !== 'Full Time').length.toString(), 'Part time & visiting', Briefcase, 'text-pink-600'],
+        ].map(([label, value, meta, Icon, colorClass]) => (
+          <Card key={label as string} className="metric-card"><CardContent className="p-4"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-bold tracking-tight">{value as string}</p><p className="mt-1 text-[11px] text-muted-foreground">{meta as string}</p></div><div className={`icon-box ${colorClass}`}><Icon className="size-4" /></div></div></CardContent></Card>
+        ))}
+      </div>
+
+      <div className="mt-6 mb-4 flex gap-2">
+        <button onClick={() => setActiveTab('list')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>
+          <User className="mr-1 inline size-3.5" />Dentist List
+        </button>
+        <button onClick={() => setActiveTab('attendance')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'attendance' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>
+          <CalendarCheck className="mr-1 inline size-3.5" />Attendance
+        </button>
+      </div>
+
+      {activeTab === 'attendance' ? (
+        <Card>
+          <CardHeader className="flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm">Dentist Attendance</CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Select Date:</span>
+              <input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)} className="flex h-9 rounded-lg border border-border bg-background px-3 py-1 text-sm outline-none focus:border-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {attendanceError && (
+              <div className="mb-3 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">{attendanceError}</div>
+            )}
+            {attendanceLoading ? (
+              <div className="flex items-center justify-center p-8"><Loader2 className="size-6 animate-spin text-primary" /></div>
+            ) : (
+              <div className="space-y-2">
+                {dentists.filter(d => d.active).map(d => {
+                  const record = attendanceMap[d.id]
+                  const isAbsent = record?.status === 'ABSENT'
+                  const isSaving = attendanceSaving === d.id
+                  return (
+                    <div key={d.id} className={`flex items-center justify-between rounded-lg border px-4 py-3 transition-colors ${isAbsent ? 'border-red-200 bg-red-50/50' : 'border-border bg-green-50/30'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`size-8 rounded-full flex items-center justify-center text-xs font-bold ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                          {isAbsent ? 'AB' : 'PR'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{d.dentistName}</p>
+                          <p className="text-xs text-muted-foreground">{d.specialization} - {d.department}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleAttendanceToggle(d.id)}
+                        disabled={isSaving}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isAbsent ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                      >
+                        {isSaving ? <Loader2 className="size-3 animate-spin inline" /> : isAbsent ? 'Mark Present' : 'Mark Absent'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search dentists..." className="flex h-10 w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
@@ -483,6 +592,8 @@ export default function DentistsPage() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
     </DashboardLayout>
   )
 }

@@ -31,4 +31,9 @@ export const patientService = {
   async delete(id: number): Promise<void> {
     await api.delete(`/api/v1/patients/${id}`)
   },
+
+  async getByBarcode(patientNumber: string): Promise<ApiResponse<PatientResponse>> {
+    const res = await api.get('/api/v1/patients/barcode', { params: { number: patientNumber } })
+    return res.data
+  },
 }

@@ -5,6 +5,8 @@ export interface AppointmentRequest {
   appointmentDate: string
   appointmentTime: string
   notes?: string
+  patientAddress?: string
+  patientContact?: string
 }
 
 export interface AppointmentResponse {
@@ -20,6 +22,8 @@ export interface AppointmentResponse {
   appointmentTime: string
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
   notes: string
+  patientAddress: string
+  patientContact: string
   createdAt: string
   updatedAt: string
 }

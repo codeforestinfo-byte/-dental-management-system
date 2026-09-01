@@ -2,6 +2,7 @@ package com.dentaflow.appointment;
 
 import com.dentaflow.appointment.dto.AppointmentRequest;
 import com.dentaflow.appointment.dto.AppointmentResponse;
+import com.dentaflow.attendance.DentistAttendanceService;
 import com.dentaflow.billing.BillRepository;
 import com.dentaflow.billing.BillService;
 import com.dentaflow.common.exception.BadRequestException;
@@ -42,6 +43,7 @@ public class AppointmentService {
     private final AppointmentMapper appointmentMapper;
     private final BillService billService;
     private final BillRepository billRepository;
+    private final DentistAttendanceService attendanceService;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest request) {
@@ -69,6 +71,10 @@ public class AppointmentService {
             throw new BadRequestException("Dentist is already booked at this date and time");
         }
 
+        if (attendanceService.isDentistAbsent(request.getDentistId(), request.getAppointmentDate())) {
+            throw new BadRequestException(dentist.getDentistName() + " is marked absent on " + request.getAppointmentDate() + ". Cannot book appointment.");
+        }
+
         Appointment appointment = Appointment.builder()
                 .appointmentNumber(NumberGenerator.generateAppointmentNumber())
                 .patient(patient)
@@ -78,6 +84,8 @@ public class AppointmentService {
                 .appointmentTime(request.getAppointmentTime())
                 .status(Appointment.AppointmentStatus.SCHEDULED)
                 .notes(request.getNotes())
+                .patientAddress(request.getPatientAddress() != null ? request.getPatientAddress() : patient.getAddress())
+                .patientContact(request.getPatientContact() != null ? request.getPatientContact() : patient.getContactNumber())
                 .build();
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
@@ -121,12 +129,18 @@ public class AppointmentService {
             throw new BadRequestException("Dentist is already booked at this date and time");
         }
 
+        if (attendanceService.isDentistAbsent(request.getDentistId(), request.getAppointmentDate())) {
+            throw new BadRequestException(dentist.getDentistName() + " is marked absent on " + request.getAppointmentDate() + ". Cannot book appointment.");
+        }
+
         appointment.setPatient(patient);
         appointment.setDentist(dentist);
         appointment.setTreatment(treatment);
         appointment.setAppointmentDate(request.getAppointmentDate());
         appointment.setAppointmentTime(request.getAppointmentTime());
         appointment.setNotes(request.getNotes());
+        appointment.setPatientAddress(request.getPatientAddress() != null ? request.getPatientAddress() : patient.getAddress());
+        appointment.setPatientContact(request.getPatientContact() != null ? request.getPatientContact() : patient.getContactNumber());
 
         Appointment updatedAppointment = appointmentRepository.save(appointment);
         log.info("Updated appointment: {}", updatedAppointment.getAppointmentNumber());

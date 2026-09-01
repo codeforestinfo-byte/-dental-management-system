@@ -66,7 +66,6 @@ const navItems = [
   ['Dentists', Stethoscope, '/dentists'],
   ['Treatments', Activity, '/treatments'],
   ['Billing', CreditCard, '/billing'],
-  ['Reports', FileBarChart, '/reports'],
 ]
 
 const bottomNavItems = [
@@ -79,7 +78,7 @@ export default function Page() {
   const [period, setPeriod] = useState('This week')
   const [query, setQuery] = useState('')
 
-  const { user, logout } = useAuth()
+  const { user, logout, hasRole } = useAuth()
   const pathname = usePathname()
 
   const [todayAppointments, setTodayAppointments] = useState<AppointmentResponse[]>([])
@@ -89,16 +88,17 @@ export default function Page() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!user) return
     async function fetchDashboardData() {
       try {
         setLoading(true)
         const today = getToday()
 
-        const [apptRes, weeklyRes, dentistsRes] = await Promise.allSettled([
-          appointmentService.getByDate(today),
-          reportService.getWeekly(getWeekStart()),
-          dentistService.getActive(),
-        ])
+        const [apptRes, weeklyRes, dentistsRes] = await Promise.allSettled(
+          user?.roles?.includes('RECEPTIONIST')
+            ? [appointmentService.getByDate(today), Promise.resolve({ success: false, data: null } as any), dentistService.getActive()]
+            : [appointmentService.getByDate(today), reportService.getWeekly(getWeekStart()), dentistService.getActive()]
+        )
 
         if (apptRes.status === 'fulfilled' && apptRes.value.success) {
           setTodayAppointments(apptRes.value.data || [])
@@ -144,7 +144,7 @@ export default function Page() {
     }
 
     fetchDashboardData()
-  }, [])
+  }, [user])
 
   const totalToday = todayAppointments.length
   const waitingCount = todayAppointments.filter(a => a.status === 'SCHEDULED').length
@@ -199,6 +199,11 @@ export default function Page() {
               <Icon className="size-[18px]" /><span>{!collapsed && label as string}</span>
             </Link>
           ))}
+          {!hasRole('RECEPTIONIST') && (
+            <Link href="/reports" className={`nav-item ${pathname === '/reports' ? 'active' : ''}`} title={collapsed ? 'Reports' : undefined}>
+              <FileBarChart className="size-[18px]" /><span>{!collapsed && 'Reports'}</span>
+            </Link>
+          )}
           <div className="my-4 border-t border-border" />
           {bottomNavItems.map(([label, Icon, href]) => (
             <Link key={label as string} href={href as string} className="nav-item" title={collapsed ? label as string : undefined}>

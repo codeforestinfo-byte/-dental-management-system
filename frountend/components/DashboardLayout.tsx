@@ -19,7 +19,6 @@ const navItems = [
   ['Dentists', Stethoscope, '/dentists'],
   ['Treatments', Activity, '/treatments'],
   ['Billing', CreditCard, '/billing'],
-  ['Reports', FileBarChart, '/reports'],
 ]
 
 const bottomNavItems = [
@@ -57,6 +56,11 @@ export default function DashboardLayout({ children, title }: { children: React.R
               <Icon className="size-[18px]" /><span>{!collapsed && label as string}</span>
             </Link>
           ))}
+          {!hasRole('RECEPTIONIST') && (
+            <Link href="/reports" className={`nav-item ${pathname === '/reports' ? 'active' : ''}`} title={collapsed ? 'Reports' : undefined}>
+              <FileBarChart className="size-[18px]" /><span>{!collapsed && 'Reports'}</span>
+            </Link>
+          )}
           {hasRole('ADMIN') && (
             <>
               <div className="my-4 border-t border-border" />
