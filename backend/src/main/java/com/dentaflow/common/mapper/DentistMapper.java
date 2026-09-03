@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @Mapper(componentModel = "spring")
 public interface DentistMapper {
 
+    @Mapping(target = "userId", expression = "java(dentist.getUser() != null ? dentist.getUser().getId() : null)")
     DentistResponse toResponse(Dentist dentist);
 
     @Mapping(target = "id", ignore = true)
@@ -22,6 +23,7 @@ public interface DentistMapper {
     @Mapping(target = "joiningDate", ignore = true)
     @Mapping(target = "profilePhotoUrl", ignore = true)
     @Mapping(target = "resumeUrl", ignore = true)
+    @Mapping(target = "user", ignore = true)
     @Mapping(target = "active", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -34,6 +36,7 @@ public interface DentistMapper {
     @Mapping(target = "joiningDate", ignore = true)
     @Mapping(target = "profilePhotoUrl", ignore = true)
     @Mapping(target = "resumeUrl", ignore = true)
+    @Mapping(target = "user", ignore = true)
     @Mapping(target = "active", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

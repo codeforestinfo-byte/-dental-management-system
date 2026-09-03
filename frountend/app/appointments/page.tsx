@@ -8,6 +8,7 @@ import { appointmentService } from '@/services/appointment.service'
 import { patientService } from '@/services/patient.service'
 import { dentistService } from '@/services/dentist.service'
 import { treatmentService } from '@/services/treatment.service'
+import { useAuth } from '@/contexts/AuthContext'
 import type { AppointmentResponse } from '@/types/appointment.types'
 import type { PatientResponse } from '@/types/patient.types'
 import type { DentistResponse } from '@/types/dentist.types'
@@ -15,6 +16,8 @@ import type { TreatmentResponse } from '@/types/treatment.types'
 import { Plus, Loader2, Edit, X, ScanBarcode, CalendarDays, Clock3, CheckCircle2, XCircle } from 'lucide-react'
 
 export default function AppointmentsPage() {
+  const { user, hasRole } = useAuth()
+  const isDentist = hasRole('DENTIST')
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([])
   const [patients, setPatients] = useState<PatientResponse[]>([])
   const [dentists, setDentists] = useState<DentistResponse[]>([])
@@ -33,16 +36,28 @@ export default function AppointmentsPage() {
     try {
       setLoading(true)
       setApiError('')
-      const [apptRes, patRes, denRes, treatRes] = await Promise.allSettled([
-        appointmentService.getAll({ size: 100 }),
-        patientService.getAll({ size: 100 }),
-        dentistService.getActive(),
-        treatmentService.getActive(),
-      ])
-      if (apptRes.status === 'fulfilled' && apptRes.value.success) setAppointments(apptRes.value.data || [])
-      if (patRes.status === 'fulfilled' && patRes.value.success) setPatients(patRes.value.data || [])
-      if (denRes.status === 'fulfilled' && denRes.value.success) setDentists(denRes.value.data || [])
-      if (treatRes.status === 'fulfilled' && treatRes.value.success) setTreatments(treatRes.value.data || [])
+
+      if (isDentist) {
+        const [apptRes, patRes, treatRes] = await Promise.allSettled([
+          appointmentService.getMyAppointments({ size: 100, sortBy: 'appointmentDate', sortDir: 'desc' }),
+          patientService.getAll({ size: 100 }),
+          treatmentService.getActive(),
+        ])
+        if (apptRes.status === 'fulfilled' && apptRes.value.success) setAppointments(apptRes.value.data || [])
+        if (patRes.status === 'fulfilled' && patRes.value.success) setPatients(patRes.value.data || [])
+        if (treatRes.status === 'fulfilled' && treatRes.value.success) setTreatments(treatRes.value.data || [])
+      } else {
+        const [apptRes, patRes, denRes, treatRes] = await Promise.allSettled([
+          appointmentService.getAll({ size: 100 }),
+          patientService.getAll({ size: 100 }),
+          dentistService.getActive(),
+          treatmentService.getActive(),
+        ])
+        if (apptRes.status === 'fulfilled' && apptRes.value.success) setAppointments(apptRes.value.data || [])
+        if (patRes.status === 'fulfilled' && patRes.value.success) setPatients(patRes.value.data || [])
+        if (denRes.status === 'fulfilled' && denRes.value.success) setDentists(denRes.value.data || [])
+        if (treatRes.status === 'fulfilled' && treatRes.value.success) setTreatments(treatRes.value.data || [])
+      }
     } catch (err: any) {
       setApiError(err?.message || 'Failed to load data')
     } finally { setLoading(false) }
@@ -105,7 +120,7 @@ export default function AppointmentsPage() {
 
   return (
     <DashboardLayout title="Appointments">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-6">
         {[
           ['Total Appointments', appointments.length.toString(), appointments.length > 0 ? `${appointments.length} booked` : 'No appointments', CalendarDays, 'text-blue-600'],
           ['Scheduled', appointments.filter(a => a.status === 'SCHEDULED').length.toString(), 'Upcoming appointments', Clock3, 'text-amber-600'],
@@ -115,9 +130,19 @@ export default function AppointmentsPage() {
           <Card key={label as string} className="metric-card"><CardContent className="p-4"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-bold tracking-tight">{value as string}</p><p className="mt-1 text-[11px] text-muted-foreground">{meta as string}</p></div><div className={`icon-box ${colorClass}`}><Icon className="size-4" /></div></div></CardContent></Card>
         ))}
       </div>
-      <div className="mb-6 mt-6 flex justify-end">
-        <Button onClick={() => { setEditingAppt(null); setForm({ ...emptyForm }); setApiError(''); setShowForm(true) }}><Plus className="mr-2 size-4" />New Appointment</Button>
-      </div>
+      {!isDentist && (
+        <div className="mb-6 mt-6 flex justify-end">
+          <Button onClick={() => {
+            setEditingAppt(null)
+            setForm({
+              ...emptyForm,
+              ...(isDentist && user?.dentistId ? { dentistId: user.dentistId } : {}),
+            })
+            setApiError('')
+            setShowForm(true)
+          }}><Plus className="mr-2 size-4" />New Appointment</Button>
+        </div>
+      )}
 
       {apiError && (
         <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -166,7 +191,7 @@ export default function AppointmentsPage() {
               </div>
               <input type="text" value={form.patientAddress} onChange={e => setForm({ ...form, patientAddress: e.target.value })} placeholder="Patient Address" className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
               <input type="text" value={form.patientContact} onChange={e => setForm({ ...form, patientContact: e.target.value })} placeholder="Contact Number" className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
-              <select value={form.dentistId} onChange={e => setForm({ ...form, dentistId: parseInt(e.target.value) })} required className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
+              <select value={form.dentistId} onChange={e => setForm({ ...form, dentistId: parseInt(e.target.value) })} required disabled={isDentist} className="flex h-10 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed">
                 <option value={0}>Select Dentist</option>
                 {dentists.map(d => <option key={d.id} value={d.id}>{d.dentistName}</option>)}
               </select>
@@ -208,9 +233,11 @@ export default function AppointmentsPage() {
                       <td><span className={statusColor(a.status)}>{a.status}</span></td>
                       <td>
                         <div className="flex gap-1">
-                          <button onClick={() => { setEditingAppt(a); setForm({ patientId: a.patientId, dentistId: a.dentistId, treatmentId: a.treatmentId, appointmentDate: a.appointmentDate, appointmentTime: a.appointmentTime, notes: a.notes || '', patientAddress: a.patientAddress || '', patientContact: a.patientContact || '' }); setShowForm(true) }} className="rounded p-1 text-muted-foreground hover:bg-accent"><Edit className="size-4" /></button>
+                          {!isDentist && (
+                            <button onClick={() => { setEditingAppt(a); setForm({ patientId: a.patientId, dentistId: a.dentistId, treatmentId: a.treatmentId, appointmentDate: a.appointmentDate, appointmentTime: a.appointmentTime, notes: a.notes || '', patientAddress: a.patientAddress || '', patientContact: a.patientContact || '' }); setShowForm(true) }} className="rounded p-1 text-muted-foreground hover:bg-accent"><Edit className="size-4" /></button>
+                          )}
                           {a.status === 'SCHEDULED' && <button onClick={() => handleStatusChange(a.id, 'COMPLETED')} className="rounded p-1 text-emerald-600 hover:bg-emerald-50" title="Complete">✓</button>}
-                          {a.status === 'SCHEDULED' && <button onClick={() => handleStatusChange(a.id, 'CANCELLED')} className="rounded p-1 text-destructive hover:bg-destructive/10" title="Cancel">✕</button>}
+                          {!isDentist && a.status === 'SCHEDULED' && <button onClick={() => handleStatusChange(a.id, 'CANCELLED')} className="rounded p-1 text-destructive hover:bg-destructive/10" title="Cancel">✕</button>}
                         </div>
                       </td>
                     </tr>

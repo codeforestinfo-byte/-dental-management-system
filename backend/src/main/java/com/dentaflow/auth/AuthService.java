@@ -6,6 +6,8 @@ import com.dentaflow.common.constants.AppConstants;
 import com.dentaflow.common.exception.BadRequestException;
 import com.dentaflow.common.exception.ResourceNotFoundException;
 import com.dentaflow.common.exception.UnauthorizedException;
+import com.dentaflow.dentist.Dentist;
+import com.dentaflow.dentist.DentistRepository;
 import com.dentaflow.security.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,6 +40,7 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final DentistRepository dentistRepository;
 
     @Transactional
     public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest) {
@@ -98,12 +102,6 @@ public class AuthService {
         }
 
         String username = tokenProvider.getUsernameFromToken(request.getRefreshToken());
-        String newAccessToken = tokenProvider.generateAccessToken(username);
-        String newRefreshToken = tokenProvider.generateRefreshToken(username);
-
-        refreshToken.setToken(newRefreshToken);
-        refreshToken.setExpiryDate(LocalDateTime.now().plusNanos(tokenProvider.getRefreshTokenExpiration() * 1_000_000));
-        refreshTokenRepository.save(refreshToken);
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
@@ -111,6 +109,13 @@ public class AuthService {
         List<String> roles = user.getRoles().stream()
                 .map(Role::getRoleName)
                 .collect(Collectors.toList());
+
+        String newAccessToken = tokenProvider.generateAccessToken(username, roles);
+        String newRefreshToken = tokenProvider.generateRefreshToken(username);
+
+        refreshToken.setToken(newRefreshToken);
+        refreshToken.setExpiryDate(LocalDateTime.now().plusNanos(tokenProvider.getRefreshTokenExpiration() * 1_000_000));
+        refreshTokenRepository.save(refreshToken);
 
         return LoginResponse.builder()
                 .accessToken(newAccessToken)
@@ -189,12 +194,21 @@ public class AuthService {
                 .map(Role::getRoleName)
                 .collect(Collectors.toList());
 
+        Long dentistId = null;
+        if (roles.contains("DENTIST")) {
+            Optional<Dentist> dentist = dentistRepository.findByUserId(user.getId());
+            if (dentist.isPresent()) {
+                dentistId = dentist.get().getId();
+            }
+        }
+
         return UserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .enabled(user.isEnabled())
                 .roles(roles)
+                .dentistId(dentistId)
                 .createdAt(user.getCreatedAt())
                 .build();
     }

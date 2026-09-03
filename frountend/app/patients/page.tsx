@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { patientService } from '@/services/patient.service'
+import { useAuth } from '@/contexts/AuthContext'
 import type { PatientResponse } from '@/types/patient.types'
 import PatientBarcode from '@/components/PatientBarcode'
 import PatientPrintCard from '@/components/PatientPrintCard'
@@ -51,6 +52,8 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 export default function PatientsPage() {
+  const { hasRole } = useAuth()
+  const isDentist = hasRole('DENTIST')
   const [patients, setPatients] = useState<PatientResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -75,7 +78,10 @@ export default function PatientsPage() {
   const fetchPatients = async () => {
     try {
       setLoading(true)
-      if (searchQuery) {
+      if (isDentist) {
+        const res = await patientService.getMyPatients({ size: 100 })
+        if (res.success) setPatients(res.data || [])
+      } else if (searchQuery) {
         const res = await patientService.search(searchQuery)
         if (res.success) setPatients(res.data || [])
       } else {
@@ -177,9 +183,9 @@ export default function PatientsPage() {
       <div className="mb-6 mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search patients by name, number, email, phone..." className="flex h-10 w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search patients by name, number, email, phone..." className="flex h-10 w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary" disabled={isDentist} />
         </div>
-        <Button onClick={() => { setEditingPatient(null); setForm({ ...emptyForm }); setApiError(''); setErrors({}); setShowForm(true) }}><Plus className="mr-2 size-4" />Add Patient</Button>
+        {!isDentist && <Button onClick={() => { setEditingPatient(null); setForm({ ...emptyForm }); setApiError(''); setErrors({}); setShowForm(true) }}><Plus className="mr-2 size-4" />Add Patient</Button>}
       </div>
 
       {showForm && (
@@ -472,8 +478,8 @@ export default function PatientsPage() {
                       <td><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${p.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{p.status}</span></td>
                       <td className="flex gap-1">
                         <button onClick={() => setPrintingPatient(p)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Print ID Card"><Printer className="size-4" /></button>
-                        <button onClick={() => startEdit(p)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Edit"><Edit className="size-4" /></button>
-                        <button onClick={() => handleDelete(p.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Delete"><Trash2 className="size-4" /></button>
+                        {!isDentist && <button onClick={() => startEdit(p)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Edit"><Edit className="size-4" /></button>}
+                        {!isDentist && <button onClick={() => handleDelete(p.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Delete"><Trash2 className="size-4" /></button>}
                       </td>
                     </tr>
                   ))}

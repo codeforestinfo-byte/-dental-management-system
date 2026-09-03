@@ -48,7 +48,9 @@ public class BillService {
         BigDecimal consultationFee = dentist.getConsultationFee() != null
                 ? dentist.getConsultationFee()
                 : new BigDecimal("1500.00");
-        BigDecimal treatmentFee = appointment.getTreatment().getTreatmentFee();
+        BigDecimal treatmentFee = appointment.getTreatment() != null
+                ? appointment.getTreatment().getTreatmentFee()
+                : BigDecimal.ZERO;
 
         Bill bill = Bill.builder()
                 .billNumber(NumberGenerator.generateBillNumber())
@@ -135,7 +137,6 @@ public class BillService {
                 Appointment.AppointmentStatus.COMPLETED, PageRequest.of(0, 1000)).getContent();
 
         return completed.stream()
-                .filter(a -> !billRepository.existsByAppointmentId(a.getId()))
                 .map(a -> AppointmentResponse.builder()
                         .id(a.getId())
                         .appointmentNumber(a.getAppointmentNumber())

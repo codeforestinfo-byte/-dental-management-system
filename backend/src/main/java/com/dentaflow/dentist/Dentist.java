@@ -1,5 +1,6 @@
 package com.dentaflow.dentist;
 
+import com.dentaflow.auth.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -89,6 +90,11 @@ public class Dentist {
 
     @Column(name = "resume_url", length = 500)
     private String resumeUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private User user;
 
     @Column(nullable = false)
     @Builder.Default

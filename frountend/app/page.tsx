@@ -8,8 +8,8 @@ import {
   Activity, AlertTriangle, Bell, CalendarDays, ChevronDown, ChevronLeft, ChevronRight,
   CircleHelp, Clock3, CreditCard, FileBarChart, HeartPulse, LayoutDashboard, Menu,
   MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, Search, Stethoscope,
-  Users, Wifi, X, CheckCircle2, UserRoundPlus, ReceiptText, ArrowUpRight,
-  LogOut, Loader2,
+  Users, Wifi, X, CheckCircle2, UserRoundPlus, ReceiptText,
+  LogOut, Loader2, User,
 } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
@@ -62,6 +62,9 @@ function SectionTitle({ icon: Icon, title, action }: { icon: typeof Activity; ti
 const navItems = [
   ['Dashboard', LayoutDashboard, '/'],
   ['Appointments', CalendarDays, '/appointments'],
+]
+
+const nonDentistNavItems = [
   ['Patients', Users, '/patients'],
   ['Dentists', Stethoscope, '/dentists'],
   ['Treatments', Activity, '/treatments'],
@@ -78,7 +81,7 @@ export default function Page() {
   const [period, setPeriod] = useState('This week')
   const [query, setQuery] = useState('')
 
-  const { user, logout, hasRole } = useAuth()
+  const { user, loading: authLoading, logout, hasRole } = useAuth()
   const pathname = usePathname()
 
   const [todayAppointments, setTodayAppointments] = useState<AppointmentResponse[]>([])
@@ -86,55 +89,72 @@ export default function Page() {
   const [activeDentists, setActiveDentists] = useState<{ name: string; count: number; color: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [nextAppointment, setNextAppointment] = useState<AppointmentResponse | null>(null)
+  const [showNotifications, setShowNotifications] = useState(false)
+
 
   useEffect(() => {
-    if (!user) return
+    if (authLoading || !user) return
     async function fetchDashboardData() {
       try {
         setLoading(true)
         const today = getToday()
 
-        const [apptRes, weeklyRes, dentistsRes] = await Promise.allSettled(
-          user?.roles?.includes('RECEPTIONIST')
-            ? [appointmentService.getByDate(today), Promise.resolve({ success: false, data: null } as any), dentistService.getActive()]
-            : [appointmentService.getByDate(today), reportService.getWeekly(getWeekStart()), dentistService.getActive()]
-        )
-
-        if (apptRes.status === 'fulfilled' && apptRes.value.success) {
-          setTodayAppointments(apptRes.value.data || [])
-        }
-
-        if (weeklyRes.status === 'fulfilled' && weeklyRes.value.success) {
-          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-          const mapped = (weeklyRes.value.data || []).map((r, i) => ({
-            day: days[i] || `Day${i}`,
-            booked: r.totalAppointments,
-            completed: r.completedAppointments,
-            cancelled: r.cancelledAppointments,
-          }))
-          setWeeklyData(mapped)
-        } else {
-          setWeeklyData([
-            { day: 'Mon', booked: 0, completed: 0, cancelled: 0 },
-            { day: 'Tue', booked: 0, completed: 0, cancelled: 0 },
-            { day: 'Wed', booked: 0, completed: 0, cancelled: 0 },
-            { day: 'Thu', booked: 0, completed: 0, cancelled: 0 },
-            { day: 'Fri', booked: 0, completed: 0, cancelled: 0 },
-            { day: 'Sat', booked: 0, completed: 0, cancelled: 0 },
-            { day: 'Sun', booked: 0, completed: 0, cancelled: 0 },
+        if (user?.roles?.includes('DENTIST')) {
+          const [apptRes, nextRes] = await Promise.allSettled([
+            appointmentService.getMyAppointmentsByDate(today),
+            appointmentService.getMyNextAppointment(),
           ])
-        }
 
-        if (dentistsRes.status === 'fulfilled' && dentistsRes.value.success) {
-          const colors = ['bg-primary', 'bg-sky-500', 'bg-indigo-500', 'bg-amber-500', 'bg-rose-500']
-          const mapped = (dentistsRes.value.data || []).map((d, i) => ({
-            name: d.dentistName,
-            count: todayAppointments.filter(a => a.dentist?.id === d.id).length,
-            color: colors[i % colors.length],
-          }))
-          setActiveDentists(mapped.length > 0 ? mapped : [{ name: 'No dentists found', count: 0, color: 'bg-muted' }])
+          if (apptRes.status === 'fulfilled' && apptRes.value.success) {
+            setTodayAppointments(apptRes.value.data || [])
+          }
+          if (nextRes.status === 'fulfilled' && nextRes.value.success && nextRes.value.data) {
+            setNextAppointment(nextRes.value.data)
+          }
         } else {
-          setActiveDentists([{ name: 'Loading...', count: 0, color: 'bg-muted' }])
+          const [apptRes, weeklyRes, dentistsRes] = await Promise.allSettled(
+            user?.roles?.includes('RECEPTIONIST')
+              ? [appointmentService.getByDate(today), Promise.resolve({ success: false, data: null } as any), dentistService.getActive()]
+              : [appointmentService.getByDate(today), reportService.getWeekly(getWeekStart()), dentistService.getActive()]
+          )
+
+          if (apptRes.status === 'fulfilled' && apptRes.value.success) {
+            setTodayAppointments(apptRes.value.data || [])
+          }
+
+          if (weeklyRes.status === 'fulfilled' && weeklyRes.value.success) {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            const mapped = (weeklyRes.value.data || []).map((r, i) => ({
+              day: days[i] || `Day${i}`,
+              booked: r.totalAppointments,
+              completed: r.completedAppointments,
+              cancelled: r.cancelledAppointments,
+            }))
+            setWeeklyData(mapped)
+          } else {
+            setWeeklyData([
+              { day: 'Mon', booked: 0, completed: 0, cancelled: 0 },
+              { day: 'Tue', booked: 0, completed: 0, cancelled: 0 },
+              { day: 'Wed', booked: 0, completed: 0, cancelled: 0 },
+              { day: 'Thu', booked: 0, completed: 0, cancelled: 0 },
+              { day: 'Fri', booked: 0, completed: 0, cancelled: 0 },
+              { day: 'Sat', booked: 0, completed: 0, cancelled: 0 },
+              { day: 'Sun', booked: 0, completed: 0, cancelled: 0 },
+            ])
+          }
+
+          if (dentistsRes.status === 'fulfilled' && dentistsRes.value.success) {
+            const colors = ['bg-primary', 'bg-sky-500', 'bg-indigo-500', 'bg-amber-500', 'bg-rose-500']
+            const mapped = (dentistsRes.value.data || []).map((d, i) => ({
+              name: d.dentistName,
+              count: todayAppointments.filter(a => a.dentistId === d.id).length,
+              color: colors[i % colors.length],
+            }))
+            setActiveDentists(mapped.length > 0 ? mapped : [{ name: 'No dentists found', count: 0, color: 'bg-muted' }])
+          } else {
+            setActiveDentists([{ name: 'Loading...', count: 0, color: 'bg-muted' }])
+          }
         }
       } catch {
         setError('Failed to load dashboard data')
@@ -144,11 +164,37 @@ export default function Page() {
     }
 
     fetchDashboardData()
-  }, [user])
+  }, [user, authLoading])
+
+  useEffect(() => {
+    if (!showNotifications) return
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-notifications]')) setShowNotifications(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showNotifications])
 
   const totalToday = todayAppointments.length
   const waitingCount = todayAppointments.filter(a => a.status === 'SCHEDULED').length
   const completedCount = todayAppointments.filter(a => a.status === 'COMPLETED').length
+
+  const notifications = useMemo(() => {
+    const items: { id: number; text: string; time: string; read: boolean }[] = []
+    todayAppointments.forEach(a => {
+      if (a.status === 'SCHEDULED') {
+        items.push({ id: a.id, text: `${a.patientName || 'Patient'} has an appointment at ${formatTime(a.appointmentTime)}`, time: a.appointmentTime, read: false })
+      }
+      if (a.status === 'COMPLETED') {
+        items.push({ id: a.id + 10000, text: `${a.patientName || 'Patient'} completed - ${a.treatmentName || 'treatment'}`, time: a.appointmentTime, read: true })
+      }
+      if (a.status === 'CANCELLED') {
+        items.push({ id: a.id + 20000, text: `${a.patientName || 'Patient'} cancelled their appointment`, time: a.appointmentTime, read: true })
+      }
+    })
+    return items.sort((a, b) => a.time.localeCompare(b.time)).slice(0, 10)
+  }, [todayAppointments])
 
   const statuses = useMemo(() => {
     const counts = { COMPLETED: 0, SCHEDULED: 0, CANCELLED: 0, NO_SHOW: 0 }
@@ -176,6 +222,25 @@ export default function Page() {
 
   const filteredQueue = useMemo(() => queue.filter(x => `${x.patient} ${x.type} ${x.dentist}`.toLowerCase().includes(query.toLowerCase())), [query, queue])
 
+  const sortedSchedule = useMemo(() => {
+    return todayAppointments
+      .slice()
+      .sort((a, b) => (a.appointmentTime || '').localeCompare(b.appointmentTime || ''))
+  }, [todayAppointments])
+
+
+
+  const dentistSchedule = useMemo(() => {
+    return sortedSchedule.map(a => ({
+      time: formatTime(a.appointmentTime),
+      patient: a.patientName || `${a.patientId}`,
+      treatment: a.treatmentName || '',
+      status: a.status,
+      isNext: nextAppointment?.id === a.id,
+      tone: a.status === 'COMPLETED' ? 'success' : a.status === 'SCHEDULED' ? 'warning' : a.status === 'CANCELLED' ? 'danger' : 'muted',
+    }))
+  }, [sortedSchedule, nextAppointment])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -199,7 +264,12 @@ export default function Page() {
               <Icon className="size-[18px]" /><span>{!collapsed && label as string}</span>
             </Link>
           ))}
-          {!hasRole('RECEPTIONIST') && (
+          {!hasRole('DENTIST') && nonDentistNavItems.map(([label, Icon, href]) => (
+            <Link key={label as string} href={href as string} className={`nav-item ${pathname === href ? 'active' : ''}`} title={collapsed ? label as string : undefined}>
+              <Icon className="size-[18px]" /><span>{!collapsed && label as string}</span>
+            </Link>
+          ))}
+          {!hasRole('RECEPTIONIST') && !hasRole('DENTIST') && (
             <Link href="/reports" className={`nav-item ${pathname === '/reports' ? 'active' : ''}`} title={collapsed ? 'Reports' : undefined}>
               <FileBarChart className="size-[18px]" /><span>{!collapsed && 'Reports'}</span>
             </Link>
@@ -211,13 +281,6 @@ export default function Page() {
             </Link>
           ))}
         </nav>
-        {!collapsed && (
-          <div className="mx-3 mb-4 rounded-xl bg-primary/10 p-3">
-            <p className="text-xs font-semibold text-primary">Need assistance?</p>
-            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">Visit the help center for support.</p>
-            <button className="mt-2 text-xs font-semibold text-primary">Open help center <ArrowUpRight className="ml-1 inline size-3" /></button>
-          </div>
-        )}
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3">
             <div className="avatar">{user?.username?.slice(0, 2).toUpperCase() || 'U'}</div>
@@ -238,11 +301,32 @@ export default function Page() {
         <header className="topbar">
           <button className="rounded-md p-2 text-muted-foreground hover:bg-accent md:hidden" onClick={() => setMobileOpen(true)}><Menu className="size-5" /></button>
           <button className="hidden rounded-md p-2 text-muted-foreground hover:bg-accent md:block" onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />}</button>
-          <div className="relative ml-1 max-w-md flex-1"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients, appointments..." className="search-input" /></div>
-          <div className="hidden items-center gap-5 sm:flex">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Wifi className="size-3.5 text-emerald-500" />Online <span className="text-border">•</span> Synced</div>
-            <div className="text-right"><p className="text-xs font-medium">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p><p className="text-[11px] text-muted-foreground">Colombo, Sri Lanka</p></div>
-            <button className="relative rounded-md p-2 text-muted-foreground hover:bg-accent"><Bell className="size-[18px]" /><span className="notification-dot" /></button>
+          <div className="hidden items-center gap-5 ml-auto sm:flex">
+            <div className="text-right"><p className="text-xs font-medium">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p><p className="mt-1 text-[11px] text-muted-foreground">Colombo, Sri Lanka</p></div>
+            <div className="relative" data-notifications>
+              <button className="relative rounded-md p-2 text-muted-foreground hover:bg-accent" onClick={() => setShowNotifications(!showNotifications)}>
+                <Bell className="size-[18px]" />
+                {notifications.some(n => !n.read) && <span className="notification-dot" />}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-border bg-background shadow-lg z-50">
+                  <div className="flex items-center justify-between border-b border-border px-4 py-2">
+                    <p className="text-xs font-semibold">Notifications</p>
+                    <button onClick={() => setShowNotifications(false)} className="text-muted-foreground hover:text-foreground"><X className="size-4" /></button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <p className="p-4 text-center text-xs text-muted-foreground">No notifications</p>
+                    ) : notifications.map(n => (
+                      <div key={n.id} className={`border-b border-border px-4 py-2.5 last:border-0 ${!n.read ? 'bg-primary/5' : ''}`}>
+                        <p className="text-xs leading-relaxed">{n.text}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">{formatTime(n.time)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="avatar small">{user?.username?.slice(0, 2).toUpperCase() || 'U'}</div>
           </div>
         </header>
@@ -252,18 +336,115 @@ export default function Page() {
             <div>
               <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-primary">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {user?.username || 'User'}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening at Sunrise Dental Clinic today.</p>
+              <p className="mt-1 text-sm text-muted-foreground">{hasRole('DENTIST') ? 'Here\'s your schedule for today.' : 'Here\'s what\'s happening at Sunrise Dental Clinic today.'}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/patients"><Button variant="outline" size="sm"><UserRoundPlus data-icon="inline-start" />Register patient</Button></Link>
-              <Link href="/appointments"><Button size="sm"><Plus data-icon="inline-start" />New appointment</Button></Link>
-            </div>
+            {!hasRole('DENTIST') && (
+              <div className="flex flex-wrap gap-2">
+                <Link href="/patients"><Button variant="outline" size="sm"><UserRoundPlus data-icon="inline-start" />Register patient</Button></Link>
+                <Link href="/appointments"><Button size="sm"><Plus data-icon="inline-start" />New appointment</Button></Link>
+              </div>
+            )}
           </div>
 
           {error && (
             <div className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
           )}
 
+          {/* ===== DENTIST DASHBOARD ===== */}
+          {hasRole('DENTIST') ? (
+            <>
+              {/* Next Patient */}
+              <Card className={`mb-6 ${nextAppointment ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Clock3 className="size-5 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">Next Patient</h3>
+                    </div>
+                    {nextAppointment ? (
+                      <div>
+                        <p className="text-lg font-bold text-foreground">{nextAppointment.patientName || 'Patient'}</p>
+                        <div className="mt-2 flex flex-col gap-1">
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">Time:</span> {formatTime(nextAppointment.appointmentTime)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">Treatment:</span> {nextAppointment.treatmentName || 'N/A'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">Appointment:</span> {nextAppointment.appointmentNumber}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-4 text-center">
+                        <CheckCircle2 className="size-8 text-emerald-500 mb-2" />
+                        <p className="text-sm font-medium text-foreground">No more patients today</p>
+                        <p className="text-xs text-muted-foreground">All appointments completed</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+              {/* Stats */}
+              <div className="grid gap-3 sm:grid-cols-3 mb-6">
+                {[
+                  ["Today's appointments", totalToday.toString(), CalendarDays, 'text-blue-600'],
+                  ['Completed', completedCount.toString(), CheckCircle2, 'text-emerald-600'],
+                  ['Remaining', (totalToday - completedCount).toString(), Clock3, 'text-amber-600'],
+                ].map(([label, value, Icon, colorClass]) => (
+                  <Card key={label as string} className="metric-card"><CardContent className="p-4"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-muted-foreground">{label as string}</p><p className="mt-2 text-2xl font-bold tracking-tight">{value as string}</p></div><div className={`icon-box ${colorClass}`}><Icon className="size-4" /></div></div></CardContent></Card>
+                ))}
+              </div>
+
+              {/* Today's Schedule */}
+              <Card className="mb-6">
+                <CardHeader><SectionTitle icon={CalendarDays} title="Today's schedule" /></CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="data-table">
+                      <thead><tr><th>TIME</th><th>PATIENT</th><th>TREATMENT</th><th>STATUS</th></tr></thead>
+                      <tbody>
+                        {dentistSchedule.map((x, i) => (
+                          <tr key={i} className={x.isNext ? 'bg-primary/5 border-l-2 border-l-primary' : ''}>
+                            <td className="font-mono text-xs text-muted-foreground">{x.time}</td>
+                            <td className="font-medium">
+                              {x.patient}
+                              {x.isNext && <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">NEXT</span>}
+                            </td>
+                            <td>{x.treatment}</td>
+                            <td><StatusBadge tone={x.tone}>{x.status}</StatusBadge></td>
+                          </tr>
+                        ))}
+                        {!dentistSchedule.length && <tr><td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">No appointments scheduled for today.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Status Pie */}
+              {statuses.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-sm">Appointment status</CardTitle></CardHeader>
+                  <CardContent className="flex items-center gap-6">
+                    <ChartContainer config={{ completed: { label: 'Completed', color: 'var(--chart-1)' } }} className="h-[170px] w-[170px]">
+                      <ResponsiveContainer><PieChart><Pie data={statuses} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} strokeWidth={0}>{statuses.map((entry, i) => <Cell key={i} fill={entry.color} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>
+                    </ChartContainer>
+                    <div className="flex flex-1 flex-col gap-2.5">
+                      {statuses.map(s => (
+                        <div key={s.name} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ backgroundColor: s.color }} /><span>{s.name}</span></div>
+                          <span className="font-semibold">{s.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+          /* ===== ADMIN / RECEPTIONIST DASHBOARD ===== */
+          <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
               ["Today's appointments", totalToday.toString(), `${todayAppointments.length > 0 ? 'Active today' : 'No appointments'}`, CalendarDays],
@@ -386,6 +567,8 @@ export default function Page() {
               </CardContent>
             </Card>
           </div>
+          </>
+          )}
         </main>
       </div>
     </div>

@@ -60,4 +60,27 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     long countByAppointmentDateAndStatus(LocalDate date, Appointment.AppointmentStatus status);
 
     long countByStatus(Appointment.AppointmentStatus status);
+
+    Page<Appointment> findByDentistId(@Param("dentistId") Long dentistId, Pageable pageable);
+
+    List<Appointment> findByDentistIdAndAppointmentDate(@Param("dentistId") Long dentistId, @Param("date") LocalDate date);
+
+    @Query("SELECT DISTINCT a.patient.id FROM Appointment a WHERE a.dentist.id = :dentistId")
+    List<Long> findDistinctPatientIdsByDentistId(@Param("dentistId") Long dentistId);
+
+    @Query("SELECT a FROM Appointment a WHERE a.dentist.id = :dentistId AND " +
+           "a.appointmentDate = :date AND a.status = 'SCHEDULED' AND " +
+           "a.appointmentTime >= :currentTime ORDER BY a.appointmentTime ASC")
+    List<Appointment> findNextScheduledAppointments(
+            @Param("dentistId") Long dentistId,
+            @Param("date") LocalDate date,
+            @Param("currentTime") LocalTime currentTime,
+            Pageable pageable);
+
+    @Query("SELECT a FROM Appointment a WHERE a.dentist.id = :dentistId AND " +
+           "a.patient.id = :patientId AND a.appointmentDate = :date AND a.status = 'SCHEDULED'")
+    Optional<Appointment> findScheduledAppointmentForDentistAndPatient(
+            @Param("dentistId") Long dentistId,
+            @Param("patientId") Long patientId,
+            @Param("date") LocalDate date);
 }

@@ -75,6 +75,13 @@ public class DentistController {
         return ResponseEntity.ok(ApiResponse.success("Active dentists retrieved", response));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<DentistResponse>> getMyDentistProfile(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        DentistResponse response = dentistService.getMyDentistProfile(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Dentist profile retrieved", response));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DentistResponse>> getDentistById(@PathVariable Long id) {
         DentistResponse response = dentistService.getDentistById(id);
