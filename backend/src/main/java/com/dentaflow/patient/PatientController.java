@@ -59,6 +59,24 @@ public class PatientController {
         return ResponseEntity.ok(ApiResponse.success("Patient found by barcode", response));
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<PaginatedResponse<PatientResponse>> getMyPatients(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(defaultValue = "firstName") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        size = Math.min(size, AppConstants.MAX_PAGE_SIZE);
+        Page<PatientResponse> patientPage = patientService.getMyPatients(
+                userDetails.getUsername(), page, size, sortBy, sortDir);
+        return ResponseEntity.ok(PaginatedResponse.of(
+                patientPage.getContent(),
+                patientPage.getNumber(),
+                patientPage.getTotalPages(),
+                patientPage.getTotalElements(),
+                patientPage.getSize()));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<PaginatedResponse<PatientResponse>> searchPatients(
             @RequestParam String q,

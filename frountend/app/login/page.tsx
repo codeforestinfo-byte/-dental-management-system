@@ -113,9 +113,6 @@ export default function LoginPage() {
                 <button type="submit" className="login-btn" disabled={loading}>
                   {loading ? 'Signing in...' : 'Login'}
                 </button>
-                <button type="button" className="forgot-link">
-                  Forgot Password?
-                </button>
               </div>
             </form>
           </div>
@@ -146,9 +143,10 @@ export default function LoginPage() {
       </div>
 
       {/* Footer */}
-      <p className="login-footer">
-        Sunrise Dental Clinic &copy; {new Date().getFullYear()}
-      </p>
+      <div className="login-footer">
+        <p>Sunrise Dental Clinic &copy; {new Date().getFullYear()}</p>
+        <p>Developed by <span className="dev-name">Sanuth Newmin Rathnayak</span> From ICBT Nugegoda</p>
+      </div>
     </div>
   )
 }

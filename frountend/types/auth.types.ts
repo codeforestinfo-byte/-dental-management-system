@@ -18,6 +18,7 @@ export interface UserResponse {
   email: string
   enabled: boolean
   roles: string[]
+  dentistId?: number | null
   createdAt: string
 }
 

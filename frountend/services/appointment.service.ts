@@ -8,6 +8,26 @@ export const appointmentService = {
     return res.data
   },
 
+  async getMyAppointments(params?: { page?: number; size?: number; sortBy?: string; sortDir?: string }): Promise<ApiResponse<PaginatedResponse<AppointmentResponse>>> {
+    const res = await api.get('/api/v1/appointments/my', { params })
+    return res.data
+  },
+
+  async getMyAppointmentsByDate(date: string): Promise<ApiResponse<AppointmentResponse[]>> {
+    const res = await api.get(`/api/v1/appointments/my/date/${date}`)
+    return res.data
+  },
+
+  async getMyNextAppointment(): Promise<ApiResponse<AppointmentResponse>> {
+    const res = await api.get('/api/v1/appointments/my/next')
+    return res.data
+  },
+
+  async scanPatientBarcode(barcode: string): Promise<ApiResponse<AppointmentResponse>> {
+    const res = await api.post('/api/v1/appointments/my/scan', null, { params: { barcode } })
+    return res.data
+  },
+
   async getById(id: number): Promise<ApiResponse<AppointmentResponse>> {
     const res = await api.get(`/api/v1/appointments/${id}`)
     return res.data

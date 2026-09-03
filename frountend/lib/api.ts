@@ -20,7 +20,10 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthEndpoint = originalRequest.url?.includes('/api/v1/auth/login') ||
+                           originalRequest.url?.includes('/api/v1/auth/refresh')
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
       const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null
@@ -32,14 +35,20 @@ api.interceptors.response.use(
             { refreshToken }
           )
           const newToken = data.data?.accessToken || data.accessToken
+          const newRefresh = data.data?.refreshToken || data.refreshToken
           if (newToken) {
             localStorage.setItem('accessToken', newToken)
+            if (newRefresh) {
+              localStorage.setItem('refreshToken', newRefresh)
+            }
+            document.cookie = `access_token=${newToken}; path=/; max-age=3600; SameSite=Lax`
             originalRequest.headers.Authorization = `Bearer ${newToken}`
             return api(originalRequest)
           }
         } catch {
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
+          document.cookie = 'access_token=; path=/; max-age=0'
         }
       }
 

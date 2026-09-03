@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { dentistService } from '@/services/dentist.service'
 import { attendanceService } from '@/services/attendance.service'
+import { useAuth } from '@/contexts/AuthContext'
 import type { DentistRequest, DentistResponse } from '@/types/dentist.types'
 import type { DentistAttendance } from '@/types/attendance.types'
 import { Plus, Search, Loader2, Edit, X, CheckCircle2, XCircle, ChevronDown, ChevronUp, Upload, FileText, User, Stethoscope, UserCheck, Clock, Briefcase, CalendarCheck } from 'lucide-react'
@@ -78,6 +79,8 @@ function extractErrors(err: any): { message: string; fields: Record<string, stri
 }
 
 export default function DentistsPage() {
+  const { hasRole } = useAuth()
+  const isDentist = hasRole('DENTIST')
   const [dentists, setDentists] = useState<DentistResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -113,8 +116,15 @@ export default function DentistsPage() {
     try {
       setLoading(true)
       setApiError('')
-      const res = await dentistService.getAll({ size: 100 })
-      if (res.success) setDentists(res.data || [])
+      if (isDentist) {
+        const res = await dentistService.getMe()
+        if (res.success && res.data) {
+          setDentists([res.data])
+        }
+      } else {
+        const res = await dentistService.getAll({ size: 100 })
+        if (res.success) setDentists(res.data || [])
+      }
     } catch (err: any) {
       setApiError(err?.response?.data?.message || err?.message || 'Failed to load dentists.')
     } finally { setLoading(false) }
@@ -284,11 +294,13 @@ export default function DentistsPage() {
 
       <div className="mt-6 mb-4 flex gap-2">
         <button onClick={() => setActiveTab('list')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'list' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>
-          <User className="mr-1 inline size-3.5" />Dentist List
+          <User className="mr-1 inline size-3.5" />Dentist Profile
         </button>
-        <button onClick={() => setActiveTab('attendance')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'attendance' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>
-          <CalendarCheck className="mr-1 inline size-3.5" />Attendance
-        </button>
+        {!isDentist && (
+          <button onClick={() => setActiveTab('attendance')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'attendance' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}`}>
+            <CalendarCheck className="mr-1 inline size-3.5" />Attendance
+          </button>
+        )}
       </div>
 
       {activeTab === 'attendance' ? (
@@ -340,11 +352,14 @@ export default function DentistsPage() {
       ) : (
         <>
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search dentists..." className="flex h-10 w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-        </div>
-        <Button onClick={() => { resetForm(); setShowForm(true) }}><Plus className="mr-2 size-4" />Add Dentist</Button>
+        {!isDentist && (
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search dentists..." className="flex h-10 w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+          </div>
+        )}
+        {isDentist && <div />}
+        {!isDentist && <Button onClick={() => { resetForm(); setShowForm(true) }}><Plus className="mr-2 size-4" />Add Dentist</Button>}
       </div>
 
       {showForm && (
@@ -580,8 +595,8 @@ export default function DentistsPage() {
                       <td>{d.department}</td>
                       <td>{d.active ? <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 className="size-3" />Active</span> : <span className="flex items-center gap-1 text-xs text-muted-foreground"><XCircle className="size-3" />Inactive</span>}</td>
                       <td className="flex gap-1">
-                        <button onClick={() => startEdit(d)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Edit"><Edit className="size-4" /></button>
-                        {d.active && <button onClick={() => handleDeactivate(d.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Deactivate"><XCircle className="size-4" /></button>}
+                        {!isDentist && <button onClick={() => startEdit(d)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Edit"><Edit className="size-4" /></button>}
+                        {!isDentist && d.active && <button onClick={() => handleDeactivate(d.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Deactivate"><XCircle className="size-4" /></button>}
                       </td>
                     </tr>
                   ))}

@@ -1,9 +1,14 @@
 package com.dentaflow.patient;
 
+import com.dentaflow.appointment.AppointmentRepository;
+import com.dentaflow.auth.User;
+import com.dentaflow.auth.UserRepository;
 import com.dentaflow.common.constants.AppConstants;
 import com.dentaflow.common.exception.BadRequestException;
 import com.dentaflow.common.exception.ResourceNotFoundException;
 import com.dentaflow.common.util.NumberGenerator;
+import com.dentaflow.dentist.Dentist;
+import com.dentaflow.dentist.DentistRepository;
 import com.dentaflow.patient.dto.PatientRequest;
 import com.dentaflow.patient.dto.PatientResponse;
 import com.dentaflow.common.mapper.PatientMapper;
@@ -17,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +32,9 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
+    private final UserRepository userRepository;
+    private final DentistRepository dentistRepository;
+    private final AppointmentRepository appointmentRepository;
 
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -104,5 +114,26 @@ public class PatientService {
         Patient patient = patientRepository.findByPatientNumber(patientNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient", "patientNumber", patientNumber));
         return patientMapper.toResponse(patient);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PatientResponse> getMyPatients(String username, int page, int size, String sortBy, String sortDir) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+
+        Dentist dentist = dentistRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dentist", "user", user.getId()));
+
+        List<Long> patientIds = appointmentRepository.findDistinctPatientIdsByDentistId(dentist.getId());
+
+        if (patientIds.isEmpty()) {
+            return Page.empty(PageRequest.of(page, size));
+        }
+
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return patientRepository.findByIdIn(patientIds, pageable).map(patientMapper::toResponse);
     }
 }

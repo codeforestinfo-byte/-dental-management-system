@@ -13,6 +13,11 @@ export const dentistService = {
     return res.data
   },
 
+  async getMe(): Promise<ApiResponse<DentistResponse>> {
+    const res = await api.get('/api/v1/dentists/me')
+    return res.data
+  },
+
   async getById(id: number): Promise<ApiResponse<DentistResponse>> {
     const res = await api.get(`/api/v1/dentists/${id}`)
     return res.data

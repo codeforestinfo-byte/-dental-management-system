@@ -1,5 +1,10 @@
 package com.dentaflow.dentist;
 
+import com.dentaflow.auth.Role;
+import com.dentaflow.auth.RoleRepository;
+import com.dentaflow.auth.User;
+import com.dentaflow.auth.UserRepository;
+import com.dentaflow.common.constants.AppConstants;
 import com.dentaflow.common.exception.BadRequestException;
 import com.dentaflow.common.exception.ResourceNotFoundException;
 import com.dentaflow.common.util.NumberGenerator;
@@ -13,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +31,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,6 +42,9 @@ public class DentistService {
 
     private final DentistRepository dentistRepository;
     private final DentistMapper dentistMapper;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.upload.dentist-dir:uploads/dentists}")
     private String uploadBaseDir;
@@ -59,8 +69,60 @@ public class DentistService {
         dentist.setFollowupFee(parseBigDecimalSafe(request.getFollowupFee()));
 
         Dentist savedDentist = dentistRepository.save(dentist);
-        log.info("Created dentist: {}", savedDentist.getDentistCode());
+
+        User user = createDentistUserAccount(savedDentist);
+        savedDentist.setUser(user);
+        savedDentist = dentistRepository.save(savedDentist);
+
+        log.info("Created dentist: {} with login account: {}", savedDentist.getDentistCode(), user.getUsername());
         return dentistMapper.toResponse(savedDentist);
+    }
+
+    private User createDentistUserAccount(Dentist dentist) {
+        String baseUsername = generateUsername(dentist.getDentistName());
+        String username = baseUsername;
+        int counter = 1;
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + counter;
+            counter++;
+        }
+
+        String email = dentist.getEmail();
+        if (userRepository.existsByEmail(email)) {
+            email = username + "@sunrisedental.lk";
+        }
+
+        Role dentistRole = roleRepository.findByRoleName(AppConstants.ROLE_DENTIST)
+                .orElseThrow(() -> new BadRequestException("DENTIST role not found"));
+
+        String defaultPassword = "dentist123";
+
+        User user = User.builder()
+                .username(username)
+                .email(email)
+                .passwordHash(passwordEncoder.encode(defaultPassword))
+                .enabled(true)
+                .roles(Set.of(dentistRole))
+                .build();
+
+        User savedUser = userRepository.save(user);
+        log.info("Created user account for dentist: {} with username: {} and default password: {}",
+                dentist.getDentistCode(), username, defaultPassword);
+        return savedUser;
+    }
+
+    private String generateUsername(String dentistName) {
+        String clean = dentistName.trim().toLowerCase()
+                .replaceAll("^dr\\.?\\s*", "")
+                .replaceAll("[^a-zA-Z\\s]", "")
+                .replaceAll("\\s+", ".");
+        if (clean.length() > 30) {
+            clean = clean.substring(0, 30);
+        }
+        if (clean.endsWith(".")) {
+            clean = clean.substring(0, clean.length() - 1);
+        }
+        return "dr." + clean;
     }
 
     @Transactional(readOnly = true)
@@ -129,6 +191,17 @@ public class DentistService {
         return dentistRepository.findByActiveTrue().stream()
                 .map(dentistMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public DentistResponse getMyDentistProfile(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+
+        Dentist dentist = dentistRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dentist", "user", user.getId()));
+
+        return dentistMapper.toResponse(dentist);
     }
 
     public String saveProfilePhoto(Long dentistId, MultipartFile file) {

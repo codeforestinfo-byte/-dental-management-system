@@ -57,6 +57,57 @@ public class AppointmentController {
                 appointmentPage.getSize()));
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<PaginatedResponse<AppointmentResponse>> getMyAppointments(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(defaultValue = "appointmentDate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        size = Math.min(size, AppConstants.MAX_PAGE_SIZE);
+        Page<AppointmentResponse> appointmentPage = appointmentService.getMyAppointments(
+                userDetails.getUsername(), page, size, sortBy, sortDir);
+        return ResponseEntity.ok(PaginatedResponse.of(
+                appointmentPage.getContent(),
+                appointmentPage.getNumber(),
+                appointmentPage.getTotalPages(),
+                appointmentPage.getTotalElements(),
+                appointmentPage.getSize()));
+    }
+
+    @GetMapping("/my/date/{date}")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getMyAppointmentsByDate(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        List<AppointmentResponse> response = appointmentService.getMyAppointmentsByDate(
+                userDetails.getUsername(), date);
+        return ResponseEntity.ok(ApiResponse.success("My appointments retrieved", response));
+    }
+
+    @GetMapping("/my/next")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> getMyNextAppointment(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        java.util.Optional<AppointmentResponse> response = appointmentService.getNextMyAppointment(
+                userDetails.getUsername());
+        if (response.isPresent()) {
+            return ResponseEntity.ok(ApiResponse.success("Next appointment retrieved", response.get()));
+        }
+        return ResponseEntity.ok(ApiResponse.success("No upcoming appointments"));
+    }
+
+    @PostMapping("/my/scan")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> scanPatientBarcode(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam String barcode,
+            HttpServletRequest httpRequest) {
+        AppointmentResponse response = appointmentService.scanPatientBarcode(
+                userDetails.getUsername(), barcode);
+        auditService.logWithUser(userDetails.getUsername(), "SCAN_BARCODE", "APPOINTMENT",
+                response.getId(), "Barcode scan completed appointment: " + response.getAppointmentNumber(),
+                getClientIp(httpRequest));
+        return ResponseEntity.ok(ApiResponse.success("Patient visit recorded successfully", response));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AppointmentResponse>> getAppointmentById(@PathVariable Long id) {
         AppointmentResponse response = appointmentService.getAppointmentById(id);

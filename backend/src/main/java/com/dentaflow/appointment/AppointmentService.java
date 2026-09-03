@@ -3,6 +3,8 @@ package com.dentaflow.appointment;
 import com.dentaflow.appointment.dto.AppointmentRequest;
 import com.dentaflow.appointment.dto.AppointmentResponse;
 import com.dentaflow.attendance.DentistAttendanceService;
+import com.dentaflow.auth.User;
+import com.dentaflow.auth.UserRepository;
 import com.dentaflow.billing.BillRepository;
 import com.dentaflow.billing.BillService;
 import com.dentaflow.common.exception.BadRequestException;
@@ -44,6 +46,7 @@ public class AppointmentService {
     private final BillService billService;
     private final BillRepository billRepository;
     private final DentistAttendanceService attendanceService;
+    private final UserRepository userRepository;
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest request) {
@@ -203,5 +206,83 @@ public class AppointmentService {
         return appointmentRepository.findDentistAppointmentsBetweenDates(dentistId, startDate, endDate).stream()
                 .map(appointmentMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AppointmentResponse> getMyAppointments(String username, int page, int size, String sortBy, String sortDir) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+
+        Dentist dentist = dentistRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dentist", "user", user.getId()));
+
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return appointmentRepository.findByDentistId(dentist.getId(), pageable).map(appointmentMapper::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> getMyAppointmentsByDate(String username, LocalDate date) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+
+        Dentist dentist = dentistRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dentist", "user", user.getId()));
+
+        return appointmentRepository.findByDentistIdAndAppointmentDate(dentist.getId(), date).stream()
+                .map(appointmentMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AppointmentResponse> getNextMyAppointment(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+
+        Dentist dentist = dentistRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dentist", "user", user.getId()));
+
+        Pageable pageable = PageRequest.of(0, 1);
+        List<Appointment> nextAppointments = appointmentRepository.findNextScheduledAppointments(
+                dentist.getId(), LocalDate.now(), LocalTime.now(), pageable);
+
+        if (nextAppointments.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(appointmentMapper.toResponse(nextAppointments.get(0)));
+    }
+
+    @Transactional
+    public AppointmentResponse scanPatientBarcode(String username, String barcode) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+
+        Dentist dentist = dentistRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dentist", "user", user.getId()));
+
+        Patient patient = patientRepository.findByPatientNumber(barcode.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", "barcode", barcode));
+
+        Appointment appointment = appointmentRepository.findScheduledAppointmentForDentistAndPatient(
+                dentist.getId(), patient.getId(), LocalDate.now())
+                .orElseThrow(() -> new BadRequestException(
+                        "No scheduled appointment found for patient " + patient.getFirstName() + " " + patient.getLastName() + " today"));
+
+        appointment.setStatus(Appointment.AppointmentStatus.COMPLETED);
+        Appointment updatedAppointment = appointmentRepository.save(appointment);
+        log.info("Barcode scan: completed appointment {} for patient {}", updatedAppointment.getAppointmentNumber(), barcode);
+
+        if (!billRepository.existsByAppointmentId(updatedAppointment.getId())) {
+            try {
+                billService.generateBill(updatedAppointment.getId());
+                log.info("Auto-generated bill for scanned appointment: {}", updatedAppointment.getAppointmentNumber());
+            } catch (Exception e) {
+                log.error("Failed to auto-generate bill for appointment {}: {}", updatedAppointment.getAppointmentNumber(), e.getMessage());
+            }
+        }
+
+        return appointmentMapper.toResponse(updatedAppointment);
     }
 }

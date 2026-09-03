@@ -24,8 +24,9 @@ button, input, select { font: inherit; }
 .legend-dot { display:inline-block; size:7px; margin-right:6px; border-radius:50%; }.status-badge { display:inline-flex; align-items:center; border-radius:999px; padding:4px 8px; font-size:10px; font-weight:600; }.status-badge.success { background:#e9f9f1; color:#059669; }.status-badge.warning { background:#fff7e6; color:#b77905; }.status-badge.info { background:#eaf5ff; color:#0284c7; }.status-badge.muted { background:#f1f5f9; color:#64748b; }.status-badge.danger { background:#fff0f0; color:#dc2626; }
 .data-table { width:100%; border-collapse:collapse; font-size:11px; }.data-table th { background:#f8fafc; padding:10px 16px; color:#94a3b8; font-size:9px; font-weight:700; letter-spacing:.08em; text-align:left; }.data-table td { border-top:1px solid var(--border); padding:13px 16px; color:var(--muted-foreground); }.data-table td:nth-child(2) { color:var(--foreground); }.alert-icon { display:grid; size:28px; flex:none; place-items:center; border-radius:7px; }.alert-icon.warning { background:#fff7e6; color:#d18a0b; }.alert-icon.info { background:#eaf5ff; color:#0284c7; }.alert-icon.danger { background:#fff0f0; color:#dc2626; }
 /* ===== LOGIN PAGE ===== */
-.login-page { display:flex; min-height:100vh; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(135deg, #e8f7f3 0%, #f4f8f8 50%, #e9f1f1 100%); padding:24px; }
-.login-card { display:flex; width:100%; max-width:900px; min-height:580px; border-radius:8px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.12), 0 4px 20px rgba(0,0,0,0.06); background:#fff; }
+.login-page { display:flex; min-height:100vh; flex-direction:column; align-items:center; justify-content:center; background:url('/dentalbg.jpg') center/cover no-repeat; position:relative; padding:24px; }
+.login-page::before { content:''; position:absolute; inset:0; backdrop-filter:blur(12px); background:rgba(255,255,255,0.25); }
+.login-card { display:flex; width:100%; max-width:900px; min-height:580px; border-radius:8px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.12), 0 4px 20px rgba(0,0,0,0.06); background:#fff; position:relative; z-index:1; }
 .form-section { flex:1; display:flex; align-items:center; justify-content:center; padding:50px 45px; }
 .form-inner { width:100%; max-width:340px; }
 .brand-logo { display:flex; justify-content:center; margin-bottom:24px; }
@@ -60,7 +61,11 @@ button, input, select { font: inherit; }
 .image-subtitle { font-size:13px; opacity:0.9; text-shadow:0 1px 4px rgba(0,0,0,0.15); line-height:1.6; margin-bottom:20px; }
 .image-features { display:flex; flex-direction:column; gap:6px; }
 .image-feature { font-size:12px; font-weight:500; opacity:0.9; }
-.login-footer { margin-top:20px; font-size:11px; color:#94a3b8; }
+.login-footer { margin-top:20px; font-size:11px; color:#ffffff; text-align:center; line-height:1.7; position:relative; z-index:1; text-shadow:0 1px 4px rgba(0,0,0,0.3); }
+.login-footer p { margin:0; }
+.login-footer a { color:#ffffff; text-decoration:none; transition:color .2s; }
+.login-footer a:hover { color:#e0e0e0; }
+.login-footer .dev-name { font-weight:600; color:#ffffff; }
 @media (max-width:768px) { .login-card { flex-direction:column; min-height:auto; max-width:420px; } .form-section { padding:36px 28px; } .image-section { display:none; } }
 /* ===== END LOGIN PAGE ===== */
 

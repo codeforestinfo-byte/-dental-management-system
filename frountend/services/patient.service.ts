@@ -8,6 +8,11 @@ export const patientService = {
     return res.data
   },
 
+  async getMyPatients(params?: { page?: number; size?: number; sortBy?: string; sortDir?: string }): Promise<ApiResponse<PaginatedResponse<PatientResponse>>> {
+    const res = await api.get('/api/v1/patients/my', { params })
+    return res.data
+  },
+
   async getById(id: number): Promise<ApiResponse<PatientResponse>> {
     const res = await api.get(`/api/v1/patients/${id}`)
     return res.data

@@ -19,5 +19,6 @@ public class UserResponse {
     private String email;
     private boolean enabled;
     private List<String> roles;
+    private Long dentistId;
     private LocalDateTime createdAt;
 }

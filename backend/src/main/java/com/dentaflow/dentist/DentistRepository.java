@@ -19,6 +19,8 @@ public interface DentistRepository extends JpaRepository<Dentist, Long> {
 
     List<Dentist> findByActiveTrue();
 
+    Optional<Dentist> findByUserId(Long userId);
+
     @Query("SELECT d FROM Dentist d WHERE d.active = true AND " +
            "LOWER(d.dentistName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(d.specialization) LIKE LOWER(CONCAT('%', :search, '%'))")

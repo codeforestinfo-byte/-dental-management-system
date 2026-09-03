@@ -39,6 +39,7 @@ public class DentistResponse {
     private String status;
     private String availableDays;
     private String resumeUrl;
+    private Long userId;
     private boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

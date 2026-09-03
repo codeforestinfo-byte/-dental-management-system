@@ -43,3 +43,17 @@ Accesstokens
 
 ### Uploads ###
 uploads/
+
+### Node ###
+node_modules/
+package-lock.json
+
+### Environment ###
+.env
+.env.local
+.env.production
+
+### Build ###
+dist/
+.next/
+out/
