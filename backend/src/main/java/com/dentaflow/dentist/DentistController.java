@@ -143,12 +143,13 @@ public class DentistController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteDentist(
             @PathVariable Long id,
+            @RequestParam(defaultValue = "") String reason,
             @AuthenticationPrincipal UserDetails userDetails,
             HttpServletRequest httpRequest) {
-        dentistService.deleteDentist(id);
+        dentistService.deleteDentist(id, reason);
         auditService.logWithUser(userDetails.getUsername(), "DELETE", "DENTIST",
-                id, "Deactivated dentist", getClientIp(httpRequest));
-        return ResponseEntity.ok(ApiResponse.success("Dentist deactivated successfully"));
+                id, "Deleted dentist. Reason: " + reason, getClientIp(httpRequest));
+        return ResponseEntity.ok(ApiResponse.success("Dentist deleted successfully"));
     }
 
     private String getClientIp(HttpServletRequest request) {

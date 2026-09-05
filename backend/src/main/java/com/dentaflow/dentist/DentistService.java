@@ -1,9 +1,13 @@
 package com.dentaflow.dentist;
 
+import com.dentaflow.appointment.Appointment;
+import com.dentaflow.appointment.AppointmentRepository;
+import com.dentaflow.attendance.DentistAttendanceRepository;
 import com.dentaflow.auth.Role;
 import com.dentaflow.auth.RoleRepository;
 import com.dentaflow.auth.User;
 import com.dentaflow.auth.UserRepository;
+import com.dentaflow.billing.BillRepository;
 import com.dentaflow.common.constants.AppConstants;
 import com.dentaflow.common.exception.BadRequestException;
 import com.dentaflow.common.exception.ResourceNotFoundException;
@@ -45,6 +49,9 @@ public class DentistService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AppointmentRepository appointmentRepository;
+    private final BillRepository billRepository;
+    private final DentistAttendanceRepository attendanceRepository;
 
     @Value("${app.upload.dentist-dir:uploads/dentists}")
     private String uploadBaseDir;
@@ -177,13 +184,30 @@ public class DentistService {
     }
 
     @Transactional
-    public void deleteDentist(Long id) {
+    public void deleteDentist(Long id, String reason) {
         Dentist dentist = dentistRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Dentist", "id", id));
-        dentist.setActive(false);
-        dentist.setStatus("INACTIVE");
-        dentistRepository.save(dentist);
-        log.info("Deactivated dentist: {}", dentist.getDentistCode());
+
+        List<Appointment> appointments = appointmentRepository.findByDentistId(id, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        for (Appointment appointment : appointments) {
+            billRepository.findByAppointmentId(appointment.getId()).ifPresent(bill -> {
+                billRepository.deleteById(bill.getId());
+                log.info("Deleted bill {} for appointment {}", bill.getBillNumber(), appointment.getAppointmentNumber());
+            });
+            appointmentRepository.deleteById(appointment.getId());
+            log.info("Deleted appointment {} for dentist {}", appointment.getAppointmentNumber(), dentist.getDentistCode());
+        }
+
+        attendanceRepository.deleteAllByDentistId(id);
+        log.info("Deleted attendance records for dentist: {}", dentist.getDentistCode());
+
+        if (dentist.getUser() != null) {
+            userRepository.deleteById(dentist.getUser().getId());
+            log.info("Deleted user account for dentist: {}", dentist.getDentistCode());
+        }
+
+        dentistRepository.deleteById(id);
+        log.info("Deleted dentist: {} | Reason: {}", dentist.getDentistCode(), reason);
     }
 
     @Transactional(readOnly = true)

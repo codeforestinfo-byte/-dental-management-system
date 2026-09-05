@@ -74,4 +74,8 @@ export const dentistService = {
   async deactivate(id: number): Promise<void> {
     await api.delete(`/api/v1/dentists/${id}`)
   },
+
+  async delete(id: number, reason: string): Promise<void> {
+    await api.delete(`/api/v1/dentists/${id}`, { params: { reason } })
+  },
 }

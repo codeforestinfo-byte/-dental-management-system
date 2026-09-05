@@ -23,4 +23,6 @@ public interface DentistAttendanceRepository extends JpaRepository<DentistAttend
     boolean existsByDentistAndAttendanceDateAndStatus(Dentist dentist, LocalDate date, String status);
 
     void deleteByDentistIdAndAttendanceDate(Long dentistId, LocalDate date);
+
+    void deleteAllByDentistId(Long dentistId);
 }

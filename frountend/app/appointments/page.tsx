@@ -13,11 +13,12 @@ import type { AppointmentResponse } from '@/types/appointment.types'
 import type { PatientResponse } from '@/types/patient.types'
 import type { DentistResponse } from '@/types/dentist.types'
 import type { TreatmentResponse } from '@/types/treatment.types'
-import { Plus, Loader2, Edit, X, ScanBarcode, CalendarDays, Clock3, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, Loader2, Edit, X, Trash2, ScanBarcode, CalendarDays, Clock3, CheckCircle2, XCircle } from 'lucide-react'
 
 export default function AppointmentsPage() {
   const { user, hasRole } = useAuth()
   const isDentist = hasRole('DENTIST')
+  const isAdmin = hasRole('ADMIN')
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([])
   const [patients, setPatients] = useState<PatientResponse[]>([])
   const [dentists, setDentists] = useState<DentistResponse[]>([])
@@ -105,6 +106,17 @@ export default function AppointmentsPage() {
   const handleStatusChange = async (id: number, status: string) => {
     try { await appointmentService.updateStatus(id, status); fetchAll() } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Failed to update status.'
+      setApiError(msg)
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this appointment?')) return
+    try {
+      await appointmentService.cancel(id)
+      fetchAll()
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to delete appointment.'
       setApiError(msg)
     }
   }
@@ -238,6 +250,7 @@ export default function AppointmentsPage() {
                           )}
                           {a.status === 'SCHEDULED' && <button onClick={() => handleStatusChange(a.id, 'COMPLETED')} className="rounded p-1 text-emerald-600 hover:bg-emerald-50" title="Complete">✓</button>}
                           {!isDentist && a.status === 'SCHEDULED' && <button onClick={() => handleStatusChange(a.id, 'CANCELLED')} className="rounded p-1 text-destructive hover:bg-destructive/10" title="Cancel">✕</button>}
+                          {isAdmin && <button onClick={() => handleDelete(a.id)} className="rounded p-1 text-destructive hover:bg-destructive/10" title="Delete"><Trash2 className="size-4" /></button>}
                         </div>
                       </td>
                     </tr>

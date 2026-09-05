@@ -154,9 +154,14 @@ public class AppointmentService {
     public void deleteAppointment(Long id) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", "id", id));
-        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
-        appointmentRepository.save(appointment);
-        log.info("Cancelled appointment: {}", appointment.getAppointmentNumber());
+
+        billRepository.findByAppointmentId(id).ifPresent(bill -> {
+            billRepository.deleteById(bill.getId());
+            log.info("Deleted associated bill: {}", bill.getBillNumber());
+        });
+
+        appointmentRepository.deleteById(id);
+        log.info("Deleted appointment: {}", appointment.getAppointmentNumber());
     }
 
     @Transactional(readOnly = true)

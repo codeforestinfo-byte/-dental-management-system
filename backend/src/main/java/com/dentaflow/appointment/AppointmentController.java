@@ -133,9 +133,9 @@ public class AppointmentController {
             @AuthenticationPrincipal UserDetails userDetails,
             HttpServletRequest httpRequest) {
         appointmentService.deleteAppointment(id);
-        auditService.logWithUser(userDetails.getUsername(), "CANCEL", "APPOINTMENT",
-                id, "Cancelled appointment", getClientIp(httpRequest));
-        return ResponseEntity.ok(ApiResponse.success("Appointment cancelled successfully"));
+        auditService.logWithUser(userDetails.getUsername(), "DELETE", "APPOINTMENT",
+                id, "Deleted appointment", getClientIp(httpRequest));
+        return ResponseEntity.ok(ApiResponse.success("Appointment deleted successfully"));
     }
 
     @GetMapping("/number/{appointmentNumber}")

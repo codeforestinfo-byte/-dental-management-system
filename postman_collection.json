@@ -1,0 +1,1211 @@
+{
+  "info": {
+    "name": "DentaFlow API - Complete Test Collection",
+    "description": "All 10 services with test endpoints for Postman",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "adminToken", "value": "" },
+    { "key": "receptionistToken", "value": "" },
+    { "key": "dentistToken", "value": "" },
+    { "key": "patientId", "value": "" },
+    { "key": "dentistId", "value": "" },
+    { "key": "appointmentId", "value": "" },
+    { "key": "treatmentId", "value": "" },
+    { "key": "billId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication Service",
+      "item": [
+        {
+          "name": "Login - Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has JWT token', () => {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('adminToken', res.accessToken || res.token);",
+                  "  pm.expect(res.accessToken || res.token).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Receptionist",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"receptionist\",\n  \"password\": \"receptionist123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has JWT token', () => {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('receptionistToken', res.accessToken || res.token);",
+                  "  pm.expect(res.accessToken || res.token).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Dentist",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"dentist\",\n  \"password\": \"dentist123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has JWT token', () => {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('dentistToken', res.accessToken || res.token);",
+                  "  pm.expect(res.accessToken || res.token).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User - /me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/change-password",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"admin123\",\n  \"newPassword\": \"newadmin123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register New User (Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newuser\",\n  \"password\": \"newuser123\",\n  \"email\": \"newuser@dental.com\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"role\": \"RECEPTIONIST\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Patient Service",
+      "item": [
+        {
+          "name": "Create Patient",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/patients",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"dateOfBirth\": \"1990-05-15\",\n  \"gender\": \"MALE\",\n  \"phone\": \"0771234567\",\n  \"email\": \"john.doe@email.com\",\n  \"address\": \"123 Main Street, Colombo\",\n  \"nic\": \"901234567V\",\n  \"emergencyContact\": \"0779876543\",\n  \"bloodGroup\": \"O+\",\n  \"allergies\": \"None\",\n  \"medicalHistory\": \"No prior conditions\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has patient ID', () => {",
+                  "  const res = pm.response.json();",
+                  "  const id = res.id || res.data?.id;",
+                  "  pm.environment.set('patientId', id);",
+                  "  pm.expect(id).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Patients (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patients?page=0&size=10&sort=firstName,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "sort", "value": "firstName,asc" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get Patient by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Search Patients",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patients/search?q=John&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "search"],
+              "query": [
+                { "key": "q", "value": "John" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Get Patient by Barcode",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patients/barcode?number=PAT-00001",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "barcode"],
+              "query": [{ "key": "number", "value": "PAT-00001" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Update Patient",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe Updated\",\n  \"dateOfBirth\": \"1990-05-15\",\n  \"gender\": \"MALE\",\n  \"phone\": \"0771234568\",\n  \"email\": \"john.doe.updated@email.com\",\n  \"address\": \"456 New Street, Colombo\",\n  \"nic\": \"901234567V\",\n  \"emergencyContact\": \"0779876543\"\n}"
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Delete Patient",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200 or 204', () => pm.response.to.have.status([200, 204]));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Dentist Service",
+      "item": [
+        {
+          "name": "Create Dentist (Multipart)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/dentists",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "dentistData", "value": "{\n  \"firstName\": \"Dr.\",\n  \"lastName\": \"Smith\",\n  \"email\": \"dr.smith@dental.com\",\n  \"phone\": \"0771112223\",\n  \"specialization\": \"Orthodontics\",\n  \"licenseNumber\": \"DEN-001\",\n  \"yearsOfExperience\": 10,\n  \"userId\": null\n}", "type": "text" },
+                { "key": "profilePhoto", "type": "file", "src": "/path/to/photo.jpg" },
+                { "key": "resume", "type": "file", "src": "/path/to/resume.pdf" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has dentist ID', () => {",
+                  "  const res = pm.response.json();",
+                  "  const id = res.id || res.data?.id;",
+                  "  pm.environment.set('dentistId', id);",
+                  "  pm.expect(id).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Dentist (JSON only)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/dentists",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Dr.\",\n  \"lastName\": \"Smith\",\n  \"email\": \"dr.smith@dental.com\",\n  \"phone\": \"0771112223\",\n  \"specialization\": \"Orthodontics\",\n  \"licenseNumber\": \"DEN-001\",\n  \"yearsOfExperience\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has dentist ID', () => {",
+                  "  const res = pm.response.json();",
+                  "  const id = res.id || res.data?.id;",
+                  "  pm.environment.set('dentistId', id);",
+                  "  pm.expect(id).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Dentists (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dentists?page=0&size=10&sort=lastName,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["dentists"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "sort", "value": "lastName,asc" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get Active Dentists",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dentists/active",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get Dentist by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dentists/{{dentistId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get My Dentist Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dentists/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{dentistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Update Dentist",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/dentists/{{dentistId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Dr.\",\n  \"lastName\": \"Smith Updated\",\n  \"email\": \"dr.smith.updated@dental.com\",\n  \"phone\": \"0771112224\",\n  \"specialization\": \"Endodontics\",\n  \"licenseNumber\": \"DEN-001\",\n  \"yearsOfExperience\": 12\n}"
+            }
+          }
+        },
+        {
+          "name": "Upload Profile Photo",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/dentists/{{dentistId}}/profile-photo",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/photo.jpg" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Resume",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/dentists/{{dentistId}}/resume",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/resume.pdf" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deactivate Dentist",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/dentists/{{dentistId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Appointment Service",
+      "item": [
+        {
+          "name": "Create Appointment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/appointments",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"dentistId\": \"{{dentistId}}\",\n  \"appointmentDate\": \"2026-09-05\",\n  \"appointmentTime\": \"10:00:00\",\n  \"treatmentId\": \"{{treatmentId}}\",\n  \"notes\": \"Regular checkup\",\n  \"status\": \"SCHEDULED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has appointment ID', () => {",
+                  "  const res = pm.response.json();",
+                  "  const id = res.id || res.data?.id;",
+                  "  pm.environment.set('appointmentId', id);",
+                  "  pm.expect(id).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Appointments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/appointments?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Get My Appointments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/appointments/my?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "my"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{dentistToken}}" }]
+          }
+        },
+        {
+          "name": "Get Next Appointment",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/appointments/my/next",
+            "header": [{ "key": "Authorization", "value": "Bearer {{dentistToken}}" }]
+          }
+        },
+        {
+          "name": "Get Appointments by Date",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/appointments/date/2026-09-05",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Get Appointment by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Get Appointment by Number",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/appointments/number/APPT-00001",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Update Appointment",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"dentistId\": \"{{dentistId}}\",\n  \"appointmentDate\": \"2026-09-06\",\n  \"appointmentTime\": \"11:00:00\",\n  \"treatmentId\": \"{{treatmentId}}\",\n  \"notes\": \"Rescheduled\",\n  \"status\": \"SCHEDULED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Appointment Status",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{appointmentId}}/status?status=COMPLETED",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "{{appointmentId}}", "status"],
+              "query": [{ "key": "status", "value": "COMPLETED" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{dentistToken}}" }]
+          }
+        },
+        {
+          "name": "Scan Barcode (Record Visit)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/appointments/my/scan?barcode=PAT-00001",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "my", "scan"],
+              "query": [{ "key": "barcode", "value": "PAT-00001" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{dentistToken}}" }]
+          }
+        },
+        {
+          "name": "Get Dentist Appointments by Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/appointments/dentist/{{dentistId}}?startDate=2026-09-01&endDate=2026-09-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["appointments", "dentist", "{{dentistId}}"],
+              "query": [
+                { "key": "startDate", "value": "2026-09-01" },
+                { "key": "endDate", "value": "2026-09-30" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Treatment Service",
+      "item": [
+        {
+          "name": "Create Treatment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/treatments",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teeth Cleaning\",\n  \"description\": \"Professional dental cleaning and polishing\",\n  \"fee\": 5000.00,\n  \"durationMinutes\": 30,\n  \"isActive\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has treatment ID', () => {",
+                  "  const res = pm.response.json();",
+                  "  const id = res.id || res.data?.id;",
+                  "  pm.environment.set('treatmentId', id);",
+                  "  pm.expect(id).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Treatments (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/treatments?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["treatments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get Active Treatments",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/treatments/active",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get Treatment by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/treatments/{{treatmentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        },
+        {
+          "name": "Update Treatment",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/treatments/{{treatmentId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teeth Cleaning\",\n  \"description\": \"Professional dental cleaning and polishing - updated\",\n  \"fee\": 6000.00,\n  \"durationMinutes\": 45,\n  \"isActive\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate Treatment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/treatments/{{treatmentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Billing Service",
+      "item": [
+        {
+          "name": "Generate Bill from Appointment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bills/generate/{{appointmentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has bill ID', () => {",
+                  "  const res = pm.response.json();",
+                  "  const id = res.id || res.data?.id;",
+                  "  pm.environment.set('billId', id);",
+                  "  pm.expect(id).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Bill by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bills/{{billId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Get All Bills (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/bills?page=0&size=10&status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["bills"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" },
+                { "key": "status", "value": "PENDING" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Process Payment - Cash",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bills/{{billId}}/payments",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000.00,\n  \"paymentMethod\": \"CASH\",\n  \"reference\": \"CASH-001\",\n  \"notes\": \"Full payment in cash\"\n}"
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Process Payment - Card",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bills/{{billId}}/payments",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000.00,\n  \"paymentMethod\": \"CARD\",\n  \"reference\": \"CARD-VISA-001\",\n  \"notes\": \"Visa card payment\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Process Payment - Bank Transfer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bills/{{billId}}/payments",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000.00,\n  \"paymentMethod\": \"BANK_TRANSFER\",\n  \"reference\": \"TXN-20260905-001\",\n  \"notes\": \"Online bank transfer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Process Payment - Mobile",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bills/{{billId}}/payments",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000.00,\n  \"paymentMethod\": \"MOBILE\",\n  \"reference\": \"MOB-PAY-001\",\n  \"notes\": \"Mobile payment via app\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refund Bill",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/bills/{{billId}}/refund",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{receptionistToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Patient requested cancellation\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Appointments Without Bills",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bills/appointments/without-bills",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          }
+        },
+        {
+          "name": "Download Bill PDF",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bills/pdf/{{billId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{receptionistToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));", "pm.test('Content-Type is PDF', () => pm.response.to.have.header('Content-Type').that.contains('application/pdf'));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Report Service",
+      "item": [
+        {
+          "name": "Daily Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/daily?date=2026-09-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "daily"],
+              "query": [{ "key": "date", "value": "2026-09-05" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Weekly Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/weekly?startDate=2026-09-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "weekly"],
+              "query": [{ "key": "startDate", "value": "2026-09-01" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Monthly Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/monthly?year=2026&month=9",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "monthly"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "9" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Revenue Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/revenue?startDate=2026-09-01&endDate=2026-09-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "revenue"],
+              "query": [
+                { "key": "startDate", "value": "2026-09-01" },
+                { "key": "endDate", "value": "2026-09-30" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        },
+        {
+          "name": "Dentist Performance Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/dentist-performance?startDate=2026-09-01&endDate=2026-09-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "dentist-performance"],
+              "query": [
+                { "key": "startDate", "value": "2026-09-01" },
+                { "key": "endDate", "value": "2026-09-30" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. User Management Service",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newdentist\",\n  \"password\": \"dentist123\",\n  \"email\": \"newdentist@dental.com\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Dentist\",\n  \"role\": \"DENTIST\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/users/2",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"updateduser\",\n  \"email\": \"updated@dental.com\",\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\",\n  \"role\": \"DENTIST\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset User Password",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/users/2/reset-password",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"resetpass123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete (Disable) User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/5",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Attendance Service",
+      "item": [
+        {
+          "name": "Mark Attendance - Present",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/dentist-attendance",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dentistId\": \"{{dentistId}}\",\n  \"date\": \"2026-09-05\",\n  \"status\": \"PRESENT\",\n  \"notes\": \"On time\"\n}"
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200 or 201', () => pm.response.to.have.status([200, 201]));"] } }
+          ]
+        },
+        {
+          "name": "Mark Attendance - Absent",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/dentist-attendance",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dentistId\": \"{{dentistId}}\",\n  \"date\": \"2026-09-06\",\n  \"status\": \"ABSENT\",\n  \"notes\": \"No show\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Mark Attendance - Half Day",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/dentist-attendance",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dentistId\": \"{{dentistId}}\",\n  \"date\": \"2026-09-07\",\n  \"status\": \"HALF_DAY\",\n  \"notes\": \"Left early - personal\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Attendance by Date",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dentist-attendance?date=2026-09-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["dentist-attendance"],
+              "query": [{ "key": "date", "value": "2026-09-05" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get Specific Dentist Attendance",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dentist-attendance/dentist/{{dentistId}}?date=2026-09-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["dentist-attendance", "dentist", "{{dentistId}}"],
+              "query": [{ "key": "date", "value": "2026-09-05" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        },
+        {
+          "name": "Get Attendance Map",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dentist-attendance/map?date=2026-09-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["dentist-attendance", "map"],
+              "query": [{ "key": "date", "value": "2026-09-05" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        },
+        {
+          "name": "Delete Attendance Record",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/dentist-attendance/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Audit Service",
+      "item": [
+        {
+          "name": "Get All Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "Get Audit Logs by User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit/user/1?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit", "user", "1"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }]
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Utility - Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/actuator/health"
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"] } }
+          ]
+        },
+        {
+          "name": "API Docs",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/api-docs"
+          }
+        }
+      ]
+    }
+  ]
+}

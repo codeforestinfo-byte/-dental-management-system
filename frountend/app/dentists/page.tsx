@@ -9,7 +9,7 @@ import { attendanceService } from '@/services/attendance.service'
 import { useAuth } from '@/contexts/AuthContext'
 import type { DentistRequest, DentistResponse } from '@/types/dentist.types'
 import type { DentistAttendance } from '@/types/attendance.types'
-import { Plus, Search, Loader2, Edit, X, CheckCircle2, XCircle, ChevronDown, ChevronUp, Upload, FileText, User, Stethoscope, UserCheck, Clock, Briefcase, CalendarCheck } from 'lucide-react'
+import { Plus, Search, Loader2, Edit, X, CheckCircle2, XCircle, ChevronDown, ChevronUp, Upload, FileText, User, Stethoscope, UserCheck, Clock, Briefcase, CalendarCheck, Trash2 } from 'lucide-react'
 
 const SPECIALIZATIONS = [
   'Orthodontist', 'Endodontist', 'Oral Surgeon', 'Periodontist',
@@ -81,6 +81,7 @@ function extractErrors(err: any): { message: string; fields: Record<string, stri
 export default function DentistsPage() {
   const { hasRole } = useAuth()
   const isDentist = hasRole('DENTIST')
+  const isAdmin = hasRole('ADMIN')
   const [dentists, setDentists] = useState<DentistResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -104,6 +105,12 @@ export default function DentistsPage() {
   const [attendanceLoading, setAttendanceLoading] = useState(false)
   const [attendanceSaving, setAttendanceSaving] = useState<number | null>(null)
   const [attendanceError, setAttendanceError] = useState('')
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<DentistResponse | null>(null)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basic: true, professional: false, contact: false, work: false, schedule: false, documents: false,
@@ -243,6 +250,29 @@ export default function DentistsPage() {
       const { message } = extractErrors(err)
       setApiError(message)
     }
+  }
+
+  const openDeleteModal = (d: DentistResponse) => {
+    setDeleteTarget(d)
+    setDeleteReason('')
+    setDeleteConfirmed(false)
+    setShowDeleteModal(true)
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget || !deleteReason.trim() || !deleteConfirmed) return
+    setDeleting(true)
+    try {
+      await dentistService.delete(deleteTarget.id, deleteReason.trim())
+      setShowDeleteModal(false)
+      setDeleteTarget(null)
+      setDeleteReason('')
+      setDeleteConfirmed(false)
+      fetchDentists()
+    } catch (err: any) {
+      const { message } = extractErrors(err)
+      setApiError(message)
+    } finally { setDeleting(false) }
   }
 
   const startEdit = (d: DentistResponse) => {
@@ -597,6 +627,7 @@ export default function DentistsPage() {
                       <td className="flex gap-1">
                         {!isDentist && <button onClick={() => startEdit(d)} className="rounded p-1 text-muted-foreground hover:bg-accent" title="Edit"><Edit className="size-4" /></button>}
                         {!isDentist && d.active && <button onClick={() => handleDeactivate(d.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Deactivate"><XCircle className="size-4" /></button>}
+                        {isAdmin && <button onClick={() => openDeleteModal(d)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" title="Delete"><Trash2 className="size-4" /></button>}
                       </td>
                     </tr>
                   ))}
@@ -608,6 +639,55 @@ export default function DentistsPage() {
         </CardContent>
       </Card>
       </>
+      )}
+
+      {showDeleteModal && deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-background rounded-lg shadow-lg w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Delete Dentist</h3>
+              <button onClick={() => { setShowDeleteModal(false); setDeleteTarget(null) }} className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"><X className="size-5" /></button>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-muted-foreground">You are about to permanently delete:</p>
+              <p className="text-sm font-medium text-foreground mt-1">{deleteTarget.dentistName} ({deleteTarget.dentistCode})</p>
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-foreground">Reason for deletion <span className="text-destructive">*</span></label>
+              <textarea
+                value={deleteReason}
+                onChange={e => setDeleteReason(e.target.value)}
+                placeholder="Enter the reason for deleting this dentist..."
+                className="flex min-h-[80px] mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+              {!deleteReason.trim() && <p className="text-xs text-muted-foreground mt-1">Required</p>}
+            </div>
+            <div className="mb-6">
+              <label className="flex items-start gap-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-lg px-2 py-1">
+                <input
+                  type="checkbox"
+                  checked={deleteConfirmed}
+                  onChange={e => setDeleteConfirmed(e.target.checked)}
+                  className="size-4 mt-0.5 rounded border-border accent-primary"
+                />
+                <div>
+                  <p className="text-sm font-medium text-foreground">I understand this action cannot be undone</p>
+                  <p className="text-xs text-muted-foreground">This will permanently remove the dentist, all their appointments, bills, and user account.</p>
+                </div>
+              </label>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => { setShowDeleteModal(false); setDeleteTarget(null) }}>Cancel</Button>
+              <Button
+                variant="destructive"
+                disabled={!deleteReason.trim() || !deleteConfirmed || deleting}
+                onClick={handleDelete}
+              >
+                {deleting ? <><Loader2 className="mr-2 size-4 animate-spin" />Deleting...</> : <><Trash2 className="mr-2 size-4" />Delete Dentist</>}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   )

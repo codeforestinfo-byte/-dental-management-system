@@ -1,8 +1,11 @@
+
 package com.dentaflow.patient;
 
+import com.dentaflow.appointment.Appointment;
 import com.dentaflow.appointment.AppointmentRepository;
 import com.dentaflow.auth.User;
 import com.dentaflow.auth.UserRepository;
+import com.dentaflow.billing.BillRepository;
 import com.dentaflow.common.constants.AppConstants;
 import com.dentaflow.common.exception.BadRequestException;
 import com.dentaflow.common.exception.ResourceNotFoundException;
@@ -35,6 +38,7 @@ public class PatientService {
     private final UserRepository userRepository;
     private final DentistRepository dentistRepository;
     private final AppointmentRepository appointmentRepository;
+    private final BillRepository billRepository;
 
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -99,6 +103,17 @@ public class PatientService {
     public void deletePatient(Long id) {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient", "id", id));
+
+        List<Appointment> appointments = appointmentRepository.findByPatientId(id, Pageable.unpaged()).getContent();
+        for (Appointment appointment : appointments) {
+            billRepository.findByAppointmentId(appointment.getId()).ifPresent(bill -> {
+                billRepository.deleteById(bill.getId());
+                log.info("Deleted bill {} for appointment {}", bill.getBillNumber(), appointment.getAppointmentNumber());
+            });
+            appointmentRepository.deleteById(appointment.getId());
+            log.info("Deleted appointment {} for patient {}", appointment.getAppointmentNumber(), patient.getPatientNumber());
+        }
+
         patientRepository.delete(patient);
         log.info("Deleted patient: {}", patient.getPatientNumber());
     }
